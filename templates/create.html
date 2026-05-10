@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract Trade · Генератор фракталов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0b0e14;
+            color: #eef2fb;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(11,14,20,0.95);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.6rem;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo i {
+            color: #0855d1;
+            font-size: 1.8rem;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: #eef2fb;
+            text-decoration: none;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: rgba(8,85,209,0.2);
+            border-color: #0855d1;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .generate-btn {
+            background: linear-gradient(145deg, #0855d1, #042f73);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 60px;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 20px rgba(8,85,209,0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(8,85,209,0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .generate-btn i {
+            font-size: 1.3rem;
+        }
+
+        .fractal-container {
+            background: #10161f;
+            border-radius: 32px;
+            padding: 20px;
+            border: 1px solid #2a3343;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .fractal-image {
+            width: 100%;
+            border-radius: 20px;
+            display: block;
+        }
+
+        .formula-info {
+            margin-top: 20px;
+            padding: 16px;
+            background: #0b0e14;
+            border-radius: 16px;
+            border-left: 3px solid #0855d1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #8e9db5;
+            word-break: break-all;
+        }
+
+        .formula-label {
+            color: #0855d1;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .history-section {
+            margin-top: 48px;
+        }
+
+        .history-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .history-item {
+            background: #10161f;
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid #2a3343;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            transform: translateY(-4px);
+            border-color: #0855d1;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+
+        .history-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .history-date {
+            font-size: 0.75rem;
+            color: #6b7c9e;
+            margin-top: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+        }
+
+        .loading i {
+            font-size: 3rem;
+            color: #0855d1;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e2a3a;
+            backdrop-filter: blur(12px);
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            border-left: 4px solid #0855d1;
+            z-index: 1100;
+            color: #eef2fb;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+            }
+            .logo {
+                font-size: 1.2rem;
+            }
+            .main-container {
+                padding: 24px 16px;
+            }
+            .generate-btn {
+                padding: 12px 32px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="index.html" class="logo">
+            <i class="fas fa-cube"></i>
+            <span>Abstract Trade</span>
+        </a>
+        <a href="index.html" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>На главную</span>
+        </a>
+    </header>
+
+    <div class="main-container">
+        <div class="controls">
+            <button class="generate-btn" id="generateBtn">
+                <i class="fas fa-cube"></i>
+                <span>Сгенерировать фрактал</span>
+            </button>
+        </div>
+
+        <div class="fractal-container" id="fractalContainer" style="display: none;">
+            <img id="fractalImage" class="fractal-image" alt="Фрактал">
+            <div class="formula-info">
+                <span class="formula-label"><i class="fas fa-math"></i> Формула:</span>
+                <span id="formulaText"></span>
+            </div>
+        </div>
+
+        <div id="loadingPlaceholder" class="loading" style="display: none;">
+            <i class="fas fa-spinner"></i>
+            <p>Генерация фрактала...</p>
+        </div>
+
+        <div class="history-section" id="historySection">
+            <div class="history-title">
+                <i class="fas fa-history"></i>
+                <span>История генераций</span>
+            </div>
+            <div id="historyGrid" class="history-grid"></div>
+        </div>
+    </div>
+
+    <div id="toastMsg" class="toast"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        const generateBtn = document.getElementById('generateBtn');
+        const fractalContainer = document.getElementById('fractalContainer');
+        const loadingPlaceholder = document.getElementById('loadingPlaceholder');
+        const fractalImage = document.getElementById('fractalImage');
+        const formulaText = document.getElementById('formulaText');
+        const historyGrid = document.getElementById('historyGrid');
+        const toast = document.getElementById('toastMsg');
+
+        let history = [];
+
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            toast.style.borderLeftColor = isError ? '#e5484d' : '#0855d1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+
+        function saveToHistory(imageUrl, formula) {
+            const item = {
+                id: Date.now(),
+                imageUrl: imageUrl,
+                formula: formula,
+                date: new Date().toLocaleString()
+            };
+            history.unshift(item);
+            if (history.length > 12) history.pop();
+            localStorage.setItem('fractal_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (history.length === 0) {
+                historyGrid.innerHTML = '<div style="text-align: center; color: #6b7c9e; grid-column: 1/-1;">Нет сгенерированных фракталов. Нажмите кнопку выше!</div>';
+                return;
+            }
+
+            historyGrid.innerHTML = history.map(item => `
+                <div class="history-item" onclick="loadFromHistory(${item.id})">
+                    <img src="${item.imageUrl}" class="history-image" alt="Фрактал">
+                    <div style="font-size: 0.8rem; color: #b1c3e0;">${item.formula.substring(0, 40)}${item.formula.length > 40 ? '...' : ''}</div>
+                    <div class="history-date">${item.date}</div>
+                </div>
+            `).join('');
+        }
+
+        window.loadFromHistory = function(id) {
+            const item = history.find(h => h.id === id);
+            if (item) {
+                fractalImage.src = item.imageUrl;
+                formulaText.textContent = item.formula;
+                fractalContainer.style.display = 'block';
+                showToast('Загружено из истории');
+            }
+        };
+
+        async function generateFractal() {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Генерация...</span>';
+            fractalContainer.style.display = 'none';
+            loadingPlaceholder.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/fractal/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    fractalImage.src = data.image;
+                    formulaText.textContent = data.formula;
+                    fractalContainer.style.display = 'block';
+                    saveToHistory(data.image, data.formula);
+                    showToast('Фрактал успешно сгенерирован!');
+                } else {
+                    showToast('Ошибка: ' + data.error, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Ошибка соединения с сервером', true);
+            } finally {
+                loadingPlaceholder.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-cube"></i><span>Сгенерировать фрактал</span>';
+            }
+        }
+
+        function loadHistory() {
+            const saved = localStorage.getItem('fractal_history');
+            if (saved) {
+                history = JSON.parse(saved);
+                renderHistory();
+            }
+        }
+
+        generateBtn.addEventListener('click', generateFractal);
+        loadHistory();
+    </script>
+</body>
+</html>

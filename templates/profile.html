@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет – Abscure Trade{% endblock %}
+
+{% block content %}
+<div style="padding: 40px 0;">
+    <h1>Личный кабинет</h1>
+    <p>Адрес кошелька: <strong>{{ user_address }}</strong></p>
+</div>
+
+<script>
+    if (!localStorage.getItem('jwt_token')) {
+        window.location.href = '/';
+    }
+</script>
+{% endblock %}

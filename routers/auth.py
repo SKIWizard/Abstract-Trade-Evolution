@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from jose import jwt
@@ -54,19 +54,41 @@ def login():
             data={"sub": address},
             expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         )
-        return jsonify({"access_token": access_token, "token_type": "bearer"})
+        response = make_response(jsonify({"access_token": access_token, "token_type": "bearer"}))
+        response.set_cookie(
+            'jwt_token',
+            access_token,
+            httponly=False,
+            secure=False,
+            samesite='Lax',
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        return response
     return jsonify({"error": "auth failed"}), 401
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+    response = make_response(jsonify({"message": "Logged out successfully"}))
+    response.delete_cookie('jwt_token')
+    return response
 
 @auth_bp.route("/me", methods=["GET"])
 def get_me():
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            address = payload.get("sub")
-            if address:
-                return jsonify({"address": address})
-        except:
-            pass
+    token = request.cookies.get('jwt_token')
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        return jsonify({"error": "unauthorized"}), 401
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        address = payload.get("sub")
+        if address:
+            return jsonify({"address": address})
+    except:
+        pass
+
     return jsonify({"error": "unauthorized"}), 401

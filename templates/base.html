@@ -15,7 +15,6 @@
       padding: 0;
       box-sizing: border-box;
     }
-
     body {
       font-family: "Inter", sans-serif;
       background-color: #0b0e14;
@@ -23,28 +22,23 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
-
     .container {
       max-width: 1280px;
       margin: 0 auto;
       padding: 0 24px;
     }
-
     h1, h2, h3 {
       font-weight: 600;
       letter-spacing: -0.02em;
     }
-
     h1 {
       font-size: clamp(2.8rem, 8vw, 4.5rem);
       line-height: 1.1;
     }
-
     h2 {
       font-size: clamp(2rem, 5vw, 3rem);
       margin-bottom: 16px;
     }
-
     .section-title {
       position: relative;
       display: inline-block;
@@ -60,7 +54,6 @@
       background: linear-gradient(90deg, #0855d1, #3d7eff);
       border-radius: 4px;
     }
-
     .btn {
       display: inline-block;
       padding: 12px 28px;
@@ -75,7 +68,6 @@
       color: #eef2fb;
       letter-spacing: -0.01em;
     }
-
     .btn-primary {
       background: linear-gradient(145deg, #0855d1, #0642a3);
       box-shadow: 0 8px 20px rgba(8, 85, 209, 0.25);
@@ -87,7 +79,6 @@
       transform: translateY(-2px);
       box-shadow: 0 14px 28px rgba(8, 85, 209, 0.35);
     }
-
     .btn-outline {
       border: 1px solid rgba(255,255,255,0.2);
       background: rgba(255,255,255,0.03);
@@ -97,7 +88,6 @@
       background: rgba(255,255,255,0.1);
       border-color: rgba(255,255,255,0.4);
     }
-
     .header {
       display: flex;
       align-items: center;
@@ -105,7 +95,6 @@
       padding: 20px 0;
       border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-
     .logo {
       display: flex;
       align-items: center;
@@ -119,7 +108,6 @@
       color: #0855d1;
       font-size: 2rem;
     }
-
     .nav {
       display: flex;
       gap: 32px;
@@ -133,7 +121,6 @@
     .nav a:hover {
       color: white;
     }
-
     .wallet-btn {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
@@ -154,7 +141,6 @@
       background: rgba(8,85,209,0.1);
       border-color: #0855d150;
     }
-
     .menu-toggle {
       display: none;
       font-size: 1.8rem;
@@ -163,7 +149,6 @@
       color: #eef2fb;
       cursor: pointer;
     }
-
     .hero {
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
@@ -171,7 +156,6 @@
       gap: 40px;
       padding: 60px 0 80px;
     }
-
     .hero-badge {
       display: inline-block;
       background: rgba(8,85,209,0.15);
@@ -183,26 +167,22 @@
       margin-bottom: 24px;
       border: 1px solid rgba(8,85,209,0.3);
     }
-
     .hero p {
       font-size: 1.2rem;
       color: #b0bedb;
       margin: 24px 0 32px;
       max-width: 500px;
     }
-
     .hero-actions {
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
     }
-
     .hero-visual {
       display: flex;
       justify-content: center;
       align-items: center;
     }
-
     .fractal-showcase {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -210,7 +190,6 @@
       width: 100%;
       max-width: 460px;
     }
-
     .fractal-card-preview {
       background: #151b26;
       border-radius: 28px;
@@ -219,7 +198,6 @@
       transition: all 0.2s;
       box-shadow: 0 20px 30px -10px rgba(0,0,0,0.6);
     }
-
     .fractal-thumb {
       aspect-ratio: 1/1;
       border-radius: 18px;
@@ -229,7 +207,6 @@
       background-repeat: no-repeat;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
     }
-
     .fractal-pattern-1 {
       background:
         radial-gradient(circle at 30% 30%, #0855d120 0%, transparent 25%),
@@ -254,7 +231,6 @@
         radial-gradient(circle at 80% 20%, #0855d130 0%, transparent 40%),
         #0f172a;
     }
-
     .preview-info {
       display: flex;
       justify-content: space-between;
@@ -268,7 +244,6 @@
       color: #8e9db5;
       font-size: 0.8rem;
     }
-
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -279,7 +254,6 @@
       padding: 40px 48px;
       border: 1px solid #252e3e;
     }
-
     .stat-item h3 {
       font-size: 2.5rem;
       font-weight: 700;
@@ -295,14 +269,12 @@
       letter-spacing: 0.04em;
       font-size: 0.9rem;
     }
-
     .featured-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 24px;
       margin-top: 40px;
     }
-
     .nft-card {
       background: #121a24;
       border-radius: 32px;
@@ -316,7 +288,6 @@
       border-color: #0855d160;
       box-shadow: 0 24px 36px -12px #00000080;
     }
-
     .nft-image {
       aspect-ratio: 1/1;
       border-radius: 20px;
@@ -325,12 +296,10 @@
       position: relative;
       overflow: hidden;
     }
-
     .img-frac1 { background: radial-gradient(circle at 20% 30%, #0855d1, #0642a3), repeating-linear-gradient(45deg, #ffffff10 0px, #ffffff10 2px, transparent 2px, transparent 10px); background-blend-mode: overlay; }
     .img-frac2 { background: conic-gradient(from 0deg at 50% 50%, #0855d1, #3d7eff, #6d9eff, #0855d1), repeating-radial-gradient(circle at 30% 30%, #fff1 0px, #fff1 3px, transparent 3px, transparent 12px); background-blend-mode: hard-light; }
     .img-frac3 { background: repeating-linear-gradient(60deg, #0855d140 0px, #0855d140 4px, #3d7eff40 4px, #3d7eff40 10px), radial-gradient(circle at 70% 20%, #f472b6, #0855d1); background-blend-mode: overlay; }
     .img-frac4 { background: repeating-radial-gradient(circle at 30% 40%, #0855d1, #3d7eff 8px), linear-gradient(45deg, #0f172a, #1e293b); }
-
     .nft-card h4 {
       font-size: 1.3rem;
       margin-bottom: 6px;
@@ -362,7 +331,6 @@
       font-size: 0.8rem;
       color: #b1c3e0;
     }
-
     .benefits {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -386,7 +354,6 @@
     .benefit-item p {
       color: #b1c3e0;
     }
-
     .footer {
       border-top: 1px solid #202a38;
       padding: 48px 0 32px;
@@ -411,7 +378,6 @@
     .social-links a:hover {
       color: white;
     }
-
     .toast {
       position: fixed;
       bottom: 24px;
@@ -429,14 +395,12 @@
       opacity: 0;
       transition: opacity 0.2s;
     }
-
     .text-gradient {
       background: linear-gradient(135deg, #ffffff, #b1c3e0);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-
     .mobile-nav {
       display: none;
       flex-direction: column;
@@ -455,7 +419,6 @@
     .mobile-nav.active {
       display: flex;
     }
-
     @media (max-width: 900px) {
       .hero {
         grid-template-columns: 1fr;
@@ -481,7 +444,6 @@
         padding: 30px 20px;
       }
     }
-
     @media (max-width: 700px) {
       .nav {
         display: none;
@@ -506,7 +468,6 @@
         text-align: center;
       }
     }
-
     @media (max-width: 480px) {
       .container { padding: 0 16px; }
       .hero { padding: 30px 0 40px; }
@@ -515,7 +476,6 @@
       .fractal-showcase { gap: 8px; }
       .mobile-break { display: block; }
     }
-
     .wallet-dropdown {
       position: absolute;
       top: 110%;
@@ -529,7 +489,6 @@
       z-index: 1001;
       backdrop-filter: blur(10px);
     }
-
     .wallet-dropdown a {
       display: flex;
       align-items: center;
@@ -540,12 +499,10 @@
       font-size: 0.95rem;
       transition: background 0.2s;
     }
-
     .wallet-dropdown a:hover {
       background: #0855d120;
       color: white;
     }
-
     .wallet-dropdown hr {
       border: 0;
       border-top: 1px solid #2d3748;
@@ -560,7 +517,7 @@
     <div class="header">
       <div class="logo">
         <i class="fas fa-cube"></i>
-        <span>Abscure Trade Evolution</span>
+        <span>Abscure Trade</span>
       </div>
       <nav class="nav">
         <a href="/">Marketplace</a>
@@ -571,7 +528,7 @@
       <div style="display: flex; gap: 16px; align-items: center;">
         <div style="position: relative;" id="walletBtnContainer">
           <button class="wallet-btn" id="connectWalletBtn">
-            <i class="fas fa-wallet"></i> <span id="walletBtnText">Connect</span> <i class="fas fa-caret-down" style="margin-left: 6px;"></i>
+            <i class="fas fa-wallet"></i> <span id="walletBtnText">Connect</span>
           </button>
           <div id="walletDropdown" class="wallet-dropdown" style="display: none;">
             <a href="/profile"><i class="fas fa-user"></i> Личный кабинет</a>
@@ -592,14 +549,12 @@
       <a href="#" id="mobileConnectBtn" style="border-bottom: none;">Connect Wallet</a>
     </div>
   </header>
-
   <main>
     {% block content %}{% endblock %}
   </main>
-
   <footer class="footer">
     <div class="footer-copy">
-      © 2026 Abscure Trade Evolution. Децентрализованная биржа фрактальных NFT. <br class="mobile-break">Все права защищены.
+      © 2026 Abscure Trade. Децентрализованная биржа фрактальных NFT. <br class="mobile-break">Все права защищены.
     </div>
     <div class="social-links">
       <a href="#"><i class="fab fa-twitter"></i></a>
@@ -609,9 +564,7 @@
     </div>
   </footer>
 </div>
-
 <div id="toastMsg" class="toast"></div>
-
 <script>
   (function() {
     const API_BASE_URL = 'http://localhost:8000';
@@ -623,14 +576,21 @@
     const logoutLink = document.getElementById('logoutLink');
     let currentAccount = null;
     let jwtToken = null;
+    let isRestoringSession = true;
+
+    const savedToken = localStorage.getItem('jwt_token');
+    const savedAddress = localStorage.getItem('wallet_address');
+    if (savedToken && savedAddress) {
+        jwtToken = savedToken;
+        currentAccount = savedAddress;
+        updateUI(currentAccount);
+    }
 
     function showToast(message, isError = false) {
       toast.textContent = message;
       toast.style.opacity = '1';
       toast.style.borderLeftColor = isError ? '#e5484d' : '#0855d1';
-      setTimeout(() => {
-        toast.style.opacity = '0';
-      }, 3500);
+      setTimeout(() => { toast.style.opacity = '0'; }, 3500);
     }
 
     function shortenAddress(address) {
@@ -701,9 +661,7 @@
         showToast('Web3 кошелек не обнаружен.', true);
         return false;
       }
-
       let selectedProvider = null;
-
       if (window.ethereum?.providers && window.ethereum.providers.length > 0) {
         const providersList = window.ethereum.providers;
         const walletChoice = document.createElement('div');
@@ -726,7 +684,6 @@
         selectedProvider = window.ethereum;
         proceedWithAuth(selectedProvider);
       }
-
       async function proceedWithAuth(provider) {
         try {
           const accounts = await provider.request({ method: 'eth_requestAccounts' });
@@ -747,6 +704,7 @@
           jwtToken = token;
           localStorage.setItem('jwt_token', token);
           localStorage.setItem('wallet_address', currentAccount);
+          document.cookie = `jwt_token=${token}; path=/; max-age=86400; SameSite=Lax`;
           showToast(`Успешный вход!`, false);
         } catch (error) {
           console.error(error);
@@ -762,22 +720,37 @@
       jwtToken = null;
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('wallet_address');
+      document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       updateUI(null);
       showToast('Вы вышли из системы', false);
     }
 
-    function restoreSession() {
-      const savedToken = localStorage.getItem('jwt_token');
-      const savedAddress = localStorage.getItem('wallet_address');
+    async function restoreSession() {
       if (savedToken && savedAddress) {
-        jwtToken = savedToken;
-        currentAccount = savedAddress;
-        updateUI(currentAccount);
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${savedToken}` }
+          });
+          if (response.ok) {
+            document.cookie = `jwt_token=${savedToken}; path=/; max-age=86400; SameSite=Lax`;
+          } else {
+            logout();
+          }
+        } catch {
+          logout();
+        }
       }
+      isRestoringSession = false;
     }
 
     async function onConnectClick(e) {
       e.stopPropagation();
+
+      if (isRestoringSession) {
+        showToast('Подождите, восстанавливаем сессию...', false);
+        return;
+      }
+
       if (jwtToken && currentAccount) {
         toggleDropdown();
       } else {
@@ -787,6 +760,12 @@
 
     function onMobileConnectClick(e) {
       e.preventDefault();
+
+      if (isRestoringSession) {
+        showToast('Подождите, восстанавливаем сессию...', false);
+        return;
+      }
+
       if (jwtToken && currentAccount) {
         window.location.href = '/profile';
       } else {
@@ -796,7 +775,6 @@
 
     if (connectBtn) connectBtn.addEventListener('click', onConnectClick);
     if (mobileConnectBtn) mobileConnectBtn.addEventListener('click', onMobileConnectClick);
-
     document.addEventListener('click', closeDropdown);
 
     if (logoutLink) {
@@ -835,7 +813,11 @@
       });
     }
 
-    restoreSession();
+    if (savedToken && savedAddress) {
+      restoreSession();
+    } else {
+      isRestoringSession = false;
+    }
   })();
 </script>
 {% block extra_js %}{% endblock %}
