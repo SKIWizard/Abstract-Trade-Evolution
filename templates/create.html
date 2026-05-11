@@ -18,6 +18,8 @@
             background: #0b0e14;
             color: #eef2fb;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
@@ -67,51 +69,76 @@
         }
 
         .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 40px 24px;
         }
 
-        .controls {
-            text-align: center;
-            margin-bottom: 40px;
+        .center-wrapper {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .generate-btn {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
             background: linear-gradient(145deg, #0855d1, #042f73);
-            border: none;
-            padding: 16px 40px;
-            border-radius: 60px;
+            border: 2px solid rgba(255,255,255,0.1);
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
+            transition: all 0.4s ease;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 20px rgba(8,85,209,0.3);
+            justify-content: center;
+            gap: 16px;
+            box-shadow: 0 0 60px rgba(8,85,209,0.3), 0 20px 40px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            padding: 2px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.2), transparent 60%);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
         }
 
         .generate-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(8,85,209,0.4);
+            transform: scale(1.05);
+            box-shadow: 0 0 90px rgba(8,85,209,0.5), 0 24px 48px rgba(0,0,0,0.6);
         }
 
         .generate-btn:active {
-            transform: translateY(0);
+            transform: scale(0.95);
+            transition: all 0.1s ease;
         }
 
         .generate-btn i {
-            font-size: 1.3rem;
+            font-size: 2.5rem;
         }
 
         .fractal-container {
+            width: 100%;
             background: #10161f;
             border-radius: 32px;
             padding: 20px;
             border: 1px solid #2a3343;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            animation: fadeIn 0.5s ease;
         }
 
         .fractal-image {
@@ -121,8 +148,11 @@
         }
 
         .loading {
-            text-align: center;
-            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
         }
 
         .loading i {
@@ -131,9 +161,25 @@
             animation: spin 1s linear infinite;
         }
 
+        .loading p {
+            color: #8e9db5;
+            font-size: 1rem;
+        }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         .toast {
@@ -166,8 +212,24 @@
                 padding: 24px 16px;
             }
             .generate-btn {
-                padding: 12px 32px;
-                font-size: 1rem;
+                width: 180px;
+                height: 180px;
+                font-size: 1.1rem;
+            }
+            .generate-btn i {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .generate-btn {
+                width: 150px;
+                height: 150px;
+                font-size: 0.95rem;
+                gap: 10px;
+            }
+            .generate-btn i {
+                font-size: 1.6rem;
             }
         }
     </style>
@@ -185,20 +247,11 @@
     </header>
 
     <div class="main-container">
-        <div class="controls">
+        <div class="center-wrapper" id="centerWrapper">
             <button class="generate-btn" id="generateBtn">
                 <i class="fas fa-cube"></i>
-                <span>Сгенерировать фрактал</span>
+                <span>Сгенерировать</span>
             </button>
-        </div>
-
-        <div class="fractal-container" id="fractalContainer" style="display: none;">
-            <img id="fractalImage" class="fractal-image" alt="Фрактал">
-        </div>
-
-        <div id="loadingPlaceholder" class="loading" style="display: none;">
-            <i class="fas fa-spinner"></i>
-            <p>Генерация фрактала...</p>
         </div>
     </div>
 
@@ -206,10 +259,8 @@
 
     <script>
         const API_BASE_URL = 'http://localhost:8000';
+        const centerWrapper = document.getElementById('centerWrapper');
         const generateBtn = document.getElementById('generateBtn');
-        const fractalContainer = document.getElementById('fractalContainer');
-        const loadingPlaceholder = document.getElementById('loadingPlaceholder');
-        const fractalImage = document.getElementById('fractalImage');
         const toast = document.getElementById('toastMsg');
 
         function showToast(message, isError = false) {
@@ -221,11 +272,35 @@
             }, 3000);
         }
 
+        function showLoading() {
+            centerWrapper.innerHTML = `
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Генерация фрактала...</p>
+                </div>
+            `;
+        }
+
+        function showFractal(imageSrc) {
+            centerWrapper.innerHTML = `
+                <div class="fractal-container">
+                    <img class="fractal-image" src="${imageSrc}" alt="Фрактал">
+                </div>
+            `;
+        }
+
+        function showButton() {
+            centerWrapper.innerHTML = `
+                <button class="generate-btn" id="generateBtn">
+                    <i class="fas fa-cube"></i>
+                    <span>Сгенерировать</span>
+                </button>
+            `;
+            document.getElementById('generateBtn').addEventListener('click', generateFractal);
+        }
+
         async function generateFractal() {
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Генерация...</span>';
-            fractalContainer.style.display = 'none';
-            loadingPlaceholder.style.display = 'block';
+            showLoading();
 
             try {
                 const response = await fetch(`${API_BASE_URL}/fractal/generate`, {
@@ -238,19 +313,16 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    fractalImage.src = data.image;
-                    fractalContainer.style.display = 'block';
+                    showFractal(data.image);
                     showToast('Фрактал успешно сгенерирован!');
                 } else {
                     showToast('Ошибка: ' + data.error, true);
+                    showButton();
                 }
             } catch (error) {
                 console.error('Error:', error);
                 showToast('Ошибка соединения с сервером', true);
-            } finally {
-                loadingPlaceholder.style.display = 'none';
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-cube"></i><span>Сгенерировать фрактал</span>';
+                showButton();
             }
         }
 
