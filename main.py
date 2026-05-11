@@ -4,15 +4,23 @@ from routers.auth import SECRET_KEY, ALGORITHM
 from routers import auth_bp, fractal_bp
 from jose import jwt, JWTError, ExpiredSignatureError
 from functools import wraps
+from models import db
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
 app.config['JSON_AS_ASCII'] = False
 app.jinja_env.encoding = 'utf-8'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///abstract_trade.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(fractal_bp)
+
+with app.app_context():
+    db.create_all()
 
 def login_required(f):
     @wraps(f)

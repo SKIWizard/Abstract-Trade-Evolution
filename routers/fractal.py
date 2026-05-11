@@ -4,81 +4,83 @@ import random
 import base64
 from io import BytesIO
 import matplotlib
-
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import warnings
+from mpmath import mp
+from models import db, Fractal
 
 warnings.filterwarnings('ignore')
 
 fractal_bp = Blueprint('fractal', __name__, url_prefix='/fractal')
 
 params = {
-    "res": 600,
-    "max_iter": 40,
-    "escape_radius": 4,
-    "formula_complexity": (5, 20)
+    "res_high": 1000,
+    "res_low": 150,
+    "max_iter": 60,
+    "escape_radius": 100,
+    "initial_dps": 20,
+    "dps_step": 5,
+    "dps_threshold": 1e-12,
+    "formula_complexity": (10, 40),
+    "rare_cmap_chance": 0.01
 }
 
+mp.dps = params["initial_dps"]
 
-def safe_eval(formula_str, z, c):
-    try:
-        z = np.clip(z.real, -1e10, 1e10) + 1j * np.clip(z.imag, -1e10, 1e10)
-        result = eval(formula_str)
-        if np.any(np.isinf(result)) or np.any(np.isnan(result)):
-            return np.zeros_like(c)
-        return result
-    except:
-        return np.zeros_like(c)
+trash_cmaps = [
+    'BrBG', 'YlOrBr', 'copper', 'bone', 'Grays',
+    'Greys', 'binary', 'gist_yarg', 'gist_earth',
+    'OrRd', 'PuRd', 'BuPu', 'Oranges', 'Reds',
+    'autumn', 'summer', 'Wistia', 'hot', 'afmhot',
+    'brown', 'tab10', 'tab20', 'tab20b', 'tab20c',
+    'Pastel1', 'Pastel2', 'Set3', 'flag', 'prism',
+    'ocean', 'terrain', 'gnuplot', 'gnuplot2',
+    'CMRmap', 'cubehelix', 'pink', 'gray'
+]
+
+rare_cmaps = [
+    'plasma', 'inferno', 'magma', 'viridis',
+    'coolwarm', 'twilight', 'turbo', 'jet',
+    'Spectral', 'RdYlBu', 'RdYlGn', 'PuOr',
+    'BrBG_r', 'PiYG', 'PRGn', 'nipy_spectral',
+    'rainbow', 'hsv', 'seismic', 'spring',
+    'winter', 'cool'
+]
+
+
+def get_random_cmap():
+    if random.random() < params["rare_cmap_chance"]:
+        return random.choice(rare_cmaps)
+    else:
+        return random.choice(trash_cmaps)
 
 
 def get_random_formula():
-    ops = ['+', '-', '*']
+    ops = ['+', '-', '*', '/', '**']
     funcs = [
-        'np.sin', 'np.cos', 'np.abs', 'np.exp',
-        'np.sinh', 'np.cosh'
+        'np.sin', 'np.cos', 'np.tan', 'np.abs', 'np.exp', 'np.conj',
+        'np.sqrt', 'np.log', 'np.sinh', 'np.cosh', 'np.tanh',
+        'np.arcsin', 'np.arccos', 'np.arctan', 'np.arcsinh', 'np.arccosh', 'np.arctanh'
     ]
-
-    safe_formulas = [
-        "z**2 + c",
-        "z**3 + c",
-        "z**2 + c**2",
-        "np.sin(z) + c",
-        "np.cos(z) + c",
-        "z * z + c",
-        "z**2 + np.sin(c)",
-        "z**3 - c",
-        "np.exp(z) + c",
-        "z**2 + np.exp(c)"
-    ]
-
-    if random.random() < 0.3:
-        return random.choice(safe_formulas)
-
     formula = "z"
-    complexity = random.randint(3, params["formula_complexity"][1])
-
-    for _ in range(complexity):
+    for _ in range(random.randint(*params["formula_complexity"])):
         op = random.choice(ops)
-        if op == '*':
-            term = random.choice(['z', 'c', '0.5', '2.0'])
-            formula = f"({formula})*({term})"
-        elif op == '+':
-            term = random.choice(['z', 'c', '0.5', '2.0', 'np.sin(z)', 'np.cos(c)'])
-            formula = f"({formula})+({term})"
-        elif op == '-':
-            term = random.choice(['z', 'c', '0.5', '2.0'])
-            formula = f"({formula})-({term})"
+        if op == '**':
+            formula = f"({formula})**{random.randint(2, 3)}"
+        else:
+            term = random.choice(['z', 'c', str(round(random.random(), 2))])
+            formula = f"({formula}){op}({term})"
 
-        if random.random() > 0.7 and len(funcs) > 0:
+        if random.random() > 0.5:
             formula = f"{random.choice(funcs)}({formula})"
 
     return formula + " + c"
 
 
-def generate_fractal_data(formula_str, x_range=[-2, -2], y_range=[2, 2], res=600):
-    x = np.linspace(x_range[0], x_range[1], res)
-    y = np.linspace(y_range[0], y_range[1], res)
+def generate_fractal_data(formula_str, x_range, y_range, res):
+    x = np.linspace(float(x_range[0]), float(x_range[1]), res)
+    y = np.linspace(float(y_range[0]), float(y_range[1]), res)
     X, Y = np.meshgrid(x, y)
     c = X + 1j * Y
     z = np.zeros_like(c)
@@ -86,36 +88,48 @@ def generate_fractal_data(formula_str, x_range=[-2, -2], y_range=[2, 2], res=600
 
     for i in range(params["max_iter"]):
         try:
-            z_new = safe_eval(formula_str, z, c)
+            z_new = eval(formula_str)
             mask = np.abs(z_new) < params["escape_radius"]
             fractal_map[mask] += 1
             z = z_new
             if not np.any(mask):
                 break
-        except Exception:
+        except:
             break
 
-    fractal_map = np.log1p(fractal_map)
-    fractal_map = fractal_map / fractal_map.max() if fractal_map.max() > 0 else fractal_map
+    if fractal_map.max() > 0:
+        fractal_map = np.log1p(fractal_map)
+        fractal_map = fractal_map / fractal_map.max()
 
     return fractal_map
 
 
-def fractal_to_base64(fractal_data, formula):
+def find_good_fractal():
+    attempts = 0
+    while attempts < 30:
+        attempts += 1
+        try:
+            f = get_random_formula()
+            data = generate_fractal_data(f, [mp.mpf(-2), mp.mpf(2)], [mp.mpf(-2), mp.mpf(2)], res=params["res_low"])
+            unique_vals = len(np.unique(data))
+            if 5 < unique_vals < 45:
+                return f
+        except:
+            continue
+    return "z**2 + c"
+
+
+def fractal_to_base64(fractal_data):
     try:
         fig = plt.figure(figsize=(10, 10), facecolor='black', dpi=80)
         ax = fig.add_subplot(111)
         ax.set_facecolor('black')
         ax.set_axis_off()
 
-        cmap_name = random.choice(['plasma', 'inferno', 'magma', 'viridis', 'coolwarm', 'twilight'])
+        cmap_name = get_random_cmap()
         cmap = plt.get_cmap(cmap_name)
 
-        extent = [-2, 2, -2, 2]
-        ax.imshow(fractal_data, cmap=cmap, extent=extent, origin='lower', aspect='auto')
-
-        formula_display = formula if len(formula) <= 60 else formula[:57] + "..."
-        ax.set_title(formula_display, color='white', fontsize=10, pad=20, fontfamily='monospace')
+        ax.imshow(fractal_data, cmap=cmap, extent=[-2, 2, -2, 2], origin='lower', aspect='auto')
 
         buffer = BytesIO()
         plt.tight_layout(pad=0)
@@ -125,9 +139,9 @@ def fractal_to_base64(fractal_data, formula):
         plt.close(fig)
         plt.close('all')
 
-        return image_base64
+        return image_base64, cmap_name
     except Exception:
-        return create_placeholder_image()
+        return create_placeholder_image(), 'gray'
 
 
 def create_placeholder_image():
@@ -149,14 +163,38 @@ def create_placeholder_image():
 @fractal_bp.route("/generate", methods=["POST"])
 def generate_fractal():
     try:
-        formula = get_random_formula()
-        fractal_data = generate_fractal_data(formula, [-2, -2], [2, 2], res=params["res"])
-        image_base64 = fractal_to_base64(fractal_data, formula)
+        mp.dps = params["initial_dps"]
+        formula = find_good_fractal()
+        x_range = [mp.mpf(-2), mp.mpf(2)]
+        y_range = [mp.mpf(-2), mp.mpf(2)]
+        fractal_data = generate_fractal_data(
+            formula,
+            x_range,
+            y_range,
+            res=params["res_high"]
+        )
+        image_base64, cmap_name = fractal_to_base64(fractal_data)
+
+        fractal_record = Fractal(
+            formula=formula,
+            cmap=cmap_name,
+            x_min=str(x_range[0]),
+            x_max=str(x_range[1]),
+            y_min=str(y_range[0]),
+            y_max=str(y_range[1]),
+            res=params["res_high"],
+            max_iter=params["max_iter"],
+            escape_radius=params["escape_radius"]
+        )
+        db.session.add(fractal_record)
+        db.session.commit()
 
         return jsonify({
             "success": True,
             "image": f"data:image/png;base64,{image_base64}",
-            "formula": formula
+            "formula": formula,
+            "fractal_id": fractal_record.id
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500

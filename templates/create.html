@@ -120,69 +120,6 @@
             display: block;
         }
 
-        .formula-info {
-            margin-top: 20px;
-            padding: 16px;
-            background: #0b0e14;
-            border-radius: 16px;
-            border-left: 3px solid #0855d1;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            color: #8e9db5;
-            word-break: break-all;
-        }
-
-        .formula-label {
-            color: #0855d1;
-            font-weight: 600;
-            margin-right: 10px;
-        }
-
-        .history-section {
-            margin-top: 48px;
-        }
-
-        .history-title {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .history-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-        }
-
-        .history-item {
-            background: #10161f;
-            border-radius: 16px;
-            padding: 12px;
-            border: 1px solid #2a3343;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .history-item:hover {
-            transform: translateY(-4px);
-            border-color: #0855d1;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-        }
-
-        .history-image {
-            width: 100%;
-            border-radius: 12px;
-            margin-bottom: 8px;
-        }
-
-        .history-date {
-            font-size: 0.75rem;
-            color: #6b7c9e;
-            margin-top: 4px;
-        }
-
         .loading {
             text-align: center;
             padding: 60px;
@@ -237,11 +174,11 @@
 </head>
 <body>
     <header class="header">
-        <a href="index.html" class="logo">
+        <a href="/" class="logo">
             <i class="fas fa-cube"></i>
             <span>Abstract Trade</span>
         </a>
-        <a href="index.html" class="back-btn">
+        <a href="/" class="back-btn">
             <i class="fas fa-arrow-left"></i>
             <span>На главную</span>
         </a>
@@ -257,23 +194,11 @@
 
         <div class="fractal-container" id="fractalContainer" style="display: none;">
             <img id="fractalImage" class="fractal-image" alt="Фрактал">
-            <div class="formula-info">
-                <span class="formula-label"><i class="fas fa-math"></i> Формула:</span>
-                <span id="formulaText"></span>
-            </div>
         </div>
 
         <div id="loadingPlaceholder" class="loading" style="display: none;">
             <i class="fas fa-spinner"></i>
             <p>Генерация фрактала...</p>
-        </div>
-
-        <div class="history-section" id="historySection">
-            <div class="history-title">
-                <i class="fas fa-history"></i>
-                <span>История генераций</span>
-            </div>
-            <div id="historyGrid" class="history-grid"></div>
         </div>
     </div>
 
@@ -285,11 +210,7 @@
         const fractalContainer = document.getElementById('fractalContainer');
         const loadingPlaceholder = document.getElementById('loadingPlaceholder');
         const fractalImage = document.getElementById('fractalImage');
-        const formulaText = document.getElementById('formulaText');
-        const historyGrid = document.getElementById('historyGrid');
         const toast = document.getElementById('toastMsg');
-
-        let history = [];
 
         function showToast(message, isError = false) {
             toast.textContent = message;
@@ -299,44 +220,6 @@
                 toast.style.opacity = '0';
             }, 3000);
         }
-
-        function saveToHistory(imageUrl, formula) {
-            const item = {
-                id: Date.now(),
-                imageUrl: imageUrl,
-                formula: formula,
-                date: new Date().toLocaleString()
-            };
-            history.unshift(item);
-            if (history.length > 12) history.pop();
-            localStorage.setItem('fractal_history', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function renderHistory() {
-            if (history.length === 0) {
-                historyGrid.innerHTML = '<div style="text-align: center; color: #6b7c9e; grid-column: 1/-1;">Нет сгенерированных фракталов. Нажмите кнопку выше!</div>';
-                return;
-            }
-
-            historyGrid.innerHTML = history.map(item => `
-                <div class="history-item" onclick="loadFromHistory(${item.id})">
-                    <img src="${item.imageUrl}" class="history-image" alt="Фрактал">
-                    <div style="font-size: 0.8rem; color: #b1c3e0;">${item.formula.substring(0, 40)}${item.formula.length > 40 ? '...' : ''}</div>
-                    <div class="history-date">${item.date}</div>
-                </div>
-            `).join('');
-        }
-
-        window.loadFromHistory = function(id) {
-            const item = history.find(h => h.id === id);
-            if (item) {
-                fractalImage.src = item.imageUrl;
-                formulaText.textContent = item.formula;
-                fractalContainer.style.display = 'block';
-                showToast('Загружено из истории');
-            }
-        };
 
         async function generateFractal() {
             generateBtn.disabled = true;
@@ -356,9 +239,7 @@
 
                 if (data.success) {
                     fractalImage.src = data.image;
-                    formulaText.textContent = data.formula;
                     fractalContainer.style.display = 'block';
-                    saveToHistory(data.image, data.formula);
                     showToast('Фрактал успешно сгенерирован!');
                 } else {
                     showToast('Ошибка: ' + data.error, true);
@@ -373,16 +254,7 @@
             }
         }
 
-        function loadHistory() {
-            const saved = localStorage.getItem('fractal_history');
-            if (saved) {
-                history = JSON.parse(saved);
-                renderHistory();
-            }
-        }
-
         generateBtn.addEventListener('click', generateFractal);
-        loadHistory();
     </script>
 </body>
 </html>
