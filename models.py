@@ -12,11 +12,13 @@ class User(db.Model):
     username = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(200), nullable=True)
     avatar = db.Column(db.String(500), nullable=True)
+    balance = db.Column(db.Float, default=1000.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
 
     fractals = db.relationship('Fractal', backref='owner', lazy=True)
+    listings = db.relationship('Listing', backref='seller', lazy=True)
 
 
 class Fractal(db.Model):
@@ -35,3 +37,17 @@ class Fractal(db.Model):
     max_iter = db.Column(db.Integer, nullable=False)
     escape_radius = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_listed = db.Column(db.Boolean, default=False)
+
+
+class Listing(db.Model):
+    __tablename__ = 'listings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    fractal_id = db.Column(db.Integer, db.ForeignKey('fractals.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='active')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    fractal = db.relationship('Fractal', backref='listing')

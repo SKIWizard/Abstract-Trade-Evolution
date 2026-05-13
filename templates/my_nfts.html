@@ -44,8 +44,7 @@
     }
     .nft-info {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
         gap: 10px;
     }
     .nft-name {
@@ -56,7 +55,7 @@
         border: 1px solid #2d3748;
         border-radius: 8px;
         padding: 6px 10px;
-        width: 70%;
+        width: 100%;
         cursor: pointer;
         transition: all 0.2s;
     }
@@ -72,7 +71,36 @@
     .nft-date {
         font-size: 0.7rem;
         color: #7e8da3;
-        white-space: nowrap;
+    }
+    .sell-btn {
+        background: #0855d1;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: white;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        width: 100%;
+    }
+    .sell-btn:hover {
+        background: #0642a3;
+        transform: scale(1.02);
+    }
+    .listed-badge {
+        background: #2d3748;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        color: #8e9db5;
+        text-align: center;
+        width: 100%;
+        display: block;
+    }
+    .button-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
     }
     .loading-spinner {
         text-align: center;
@@ -209,7 +237,6 @@
                 <button class="save-name-btn" onclick="saveFractalName()">Сохранить</button>
             </div>
             <p><strong>ID:</strong> <span id="modalId"></span></p>
-            <p><strong>Формула:</strong> <span id="modalFormula"></span></p>
             <p><strong>Создан:</strong> <span id="modalDate"></span></p>
         </div>
     </div>
@@ -229,6 +256,15 @@
             if (name === 'jwt_token') return decodeURIComponent(value);
         }
         return null;
+    }
+
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.style.opacity = '1';
+        toast.style.borderLeftColor = isError ? '#e5484d' : '#0855d1';
+        setTimeout(() => { toast.style.opacity = '0'; }, 3000);
     }
 
     async function loadMyFractals() {
@@ -305,6 +341,12 @@
                         </div>
                         <div class="nft-info">
                             <input type="text" class="nft-name" data-id="${fractal.id}" value="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}" maxlength="50">
+                            <div class="button-row">
+                                ${!fractal.is_listed
+                                    ? `<button class="sell-btn" data-id="${fractal.id}" data-name="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}">📈 Продать</button>`
+                                    : `<span class="listed-badge">📌 В продаже</span>`
+                                }
+                            </div>
                             <span class="nft-date">${new Date(fractal.created_at).toLocaleDateString('ru-RU')}</span>
                         </div>
                     </div>
@@ -316,6 +358,7 @@
             const fractalId = item.dataset.id;
             item.addEventListener('click', (e) => {
                 if (e.target.classList.contains('nft-name')) return;
+                if (e.target.classList.contains('sell-btn')) return;
                 showFractalDetail(fractalId);
             });
         });
@@ -330,6 +373,25 @@
                 if (e.key === 'Enter') {
                     e.target.blur();
                 }
+            });
+        });
+
+        document.querySelectorAll('.sell-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fractalId = btn.dataset.id;
+                const fractalName = btn.dataset.name;
+
+                const price = prompt(`Введите цену для "${fractalName}" в FRX:`, "10");
+                if (price === null) return;
+
+                const priceNum = parseFloat(price);
+                if (isNaN(priceNum) || priceNum <= 0) {
+                    showToast('Введите корректную цену', true);
+                    return;
+                }
+
+                await sellFractal(fractalId, priceNum);
             });
         });
 
@@ -361,6 +423,33 @@
             if (m === '>') return '&gt;';
             return m;
         });
+    }
+
+    async function sellFractal(fractalId, price) {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch('/marketplace/list', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ fractal_id: fractalId, price: price })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Фрактал выставлен на продажу!', false);
+                loadMyFractals();
+            } else {
+                showToast(data.error || 'Ошибка при выставлении', true);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Ошибка соединения', true);
+        }
     }
 
     async function saveFractalNameDirect(fractalId, name) {
@@ -407,6 +496,7 @@
                 if (nameInput) {
                     nameInput.value = name;
                 }
+                showToast('Название сохранено', false);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -429,7 +519,6 @@
             if (data.success) {
                 document.getElementById('modalImage').src = data.image;
                 document.getElementById('modalId').textContent = fractalId;
-                document.getElementById('modalFormula').textContent = data.formula;
                 document.getElementById('modalDate').textContent = new Date(data.created_at).toLocaleString('ru-RU');
                 document.getElementById('modalNameInput').value = data.name || '';
                 document.getElementById('fractalModal').classList.add('active');

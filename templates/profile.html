@@ -1,16 +1,157 @@
 {% extends "base.html" %}
 
-{% block title %}Личный кабинет – Abscure Trade{% endblock %}
+{% block title %}Личный кабинет – Abstract Trade{% endblock %}
 
 {% block content %}
-<div style="padding: 40px 0;">
+<style>
+    .profile-container {
+        padding: 40px 0;
+    }
+    .balance-card {
+        background: #10161f;
+        border-radius: 24px;
+        padding: 24px;
+        margin-top: 30px;
+        border: 1px solid #2a3343;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    .balance-info {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+    }
+    .balance-label {
+        color: #8e9db5;
+        font-size: 1rem;
+    }
+    .balance-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0855d1;
+    }
+    .add-balance-btn {
+        background: linear-gradient(145deg, #0855d1, #042f73);
+        border: none;
+        padding: 12px 28px;
+        border-radius: 40px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .add-balance-btn:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 20px rgba(8,85,209,0.4);
+    }
+    .wallet-info {
+        background: #0b0e14;
+        padding: 16px;
+        border-radius: 16px;
+        margin-top: 20px;
+    }
+    .wallet-info p {
+        color: #8e9db5;
+        word-break: break-all;
+    }
+</style>
+
+<div class="profile-container">
     <h1>Личный кабинет</h1>
-    <p>Адрес кошелька: <strong>{{ user_address }}</strong></p>
+
+    <div class="wallet-info">
+        <p>Адрес кошелька: <strong>{{ user_address }}</strong></p>
+    </div>
+
+    <div class="balance-card">
+        <div class="balance-info">
+            <span class="balance-label">Баланс токенов:</span>
+            <span class="balance-value" id="balanceValue">0</span>
+            <span class="balance-label">FRX</span>
+        </div>
+        <button class="add-balance-btn" id="addBalanceBtn">
+            <i class="fas fa-plus-circle"></i> Пополнить (+1 FRX)
+        </button>
+    </div>
 </div>
 
 <script>
-    if (!localStorage.getItem('jwt_token')) {
-        window.location.href = '/';
+    const API_BASE_URL = '';
+
+    function getToken() {
+        const token = localStorage.getItem('jwt_token');
+        if (token) return token;
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'jwt_token') return decodeURIComponent(value);
+        }
+        return null;
     }
+
+    async function loadBalance() {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch('/auth/balance', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById('balanceValue').textContent = data.balance.toFixed(2);
+            }
+        } catch (error) {
+            console.error('Error loading balance:', error);
+        }
+    }
+
+    async function addBalance() {
+        const token = getToken();
+        if (!token) {
+            window.location.href = '/';
+            return;
+        }
+
+        try {
+            const response = await fetch('/auth/add-balance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ amount: 1 })
+            });
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('balanceValue').textContent = data.balance.toFixed(2);
+                showToast('Баланс пополнен на 1 FRX!', false);
+            } else {
+                showToast('Ошибка пополнения', true);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Ошибка соединения', true);
+        }
+    }
+
+    function showToast(message, isError) {
+        const toast = document.getElementById('toastMsg');
+        if (toast) {
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            toast.style.borderLeftColor = isError ? '#e5484d' : '#0855d1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+    }
+
+    document.getElementById('addBalanceBtn')?.addEventListener('click', addBalance);
+
+    loadBalance();
 </script>
 {% endblock %}

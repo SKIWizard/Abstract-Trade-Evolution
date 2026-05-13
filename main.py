@@ -1,8 +1,8 @@
-from flask import Flask, render_template, make_response, request, redirect, url_for
+from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify
 from flask_cors import CORS
 from routers.auth import SECRET_KEY, ALGORITHM
-from routers import auth_bp, fractal_bp
-from jose import jwt, JWTError, ExpiredSignatureError
+from routers import auth_bp, fractal_bp, marketplace_bp
+from jose import jwt
 from functools import wraps
 from models import db
 import logging
@@ -23,6 +23,7 @@ db.init_app(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(fractal_bp)
+app.register_blueprint(marketplace_bp)
 
 with app.app_context():
     db.create_all()
@@ -39,21 +40,21 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.cookies.get('jwt_token')
-
         if not token:
             auth_header = request.headers.get('Authorization')
             if auth_header and auth_header.startswith('Bearer '):
                 token = auth_header.split(' ')[1]
-
         if not token:
+            if request.headers.get('Content-Type') == 'application/json' or request.path.startswith('/api'):
+                return jsonify({"error": "unauthorized"}), 401
             return redirect(url_for('serve_index'))
-
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             request.user_address = payload.get('sub')
         except:
+            if request.headers.get('Content-Type') == 'application/json' or request.path.startswith('/api'):
+                return jsonify({"error": "unauthorized"}), 401
             return redirect(url_for('serve_index'))
-
         return f(*args, **kwargs)
     return decorated_function
 
@@ -108,5 +109,11 @@ def serve_about():
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     return resp
 
+@app.route('/marketplace')
+def serve_marketplace():
+    resp = make_response(render_template('marketplace.html'))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return resp
+
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)

@@ -468,7 +468,7 @@
                 const nonceData = await nonceResponse.json();
                 const nonce = nonceData.nonce;
 
-                const message = `Вход на Abscure Trade: ${nonce}`;
+                const message = `Вход на Abstract Trade: ${nonce}`;
                 const signature = await window.ethereum.request({
                     method: 'personal_sign',
                     params: [message, address]

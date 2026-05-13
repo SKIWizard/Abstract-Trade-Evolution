@@ -222,6 +222,7 @@ def get_my_fractals():
                 "name": f.name,
                 "formula": f.formula,
                 "cmap": f.cmap,
+                "is_listed": f.is_listed,
                 "created_at": f.created_at.isoformat() if f.created_at else None,
                 "x_min": f.x_min,
                 "x_max": f.x_max,
