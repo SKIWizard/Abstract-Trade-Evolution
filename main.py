@@ -5,14 +5,19 @@ from routers import auth_bp, fractal_bp
 from jose import jwt, JWTError, ExpiredSignatureError
 from functools import wraps
 from models import db
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__, static_folder='static')
-CORS(app)
+CORS(app, supports_credentials=True, origins=['http://localhost:8000', 'http://127.0.0.1:8000'])
 
 app.config['JSON_AS_ASCII'] = False
 app.jinja_env.encoding = 'utf-8'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///abstract_trade.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = False
 
 db.init_app(app)
 
@@ -21,6 +26,14 @@ app.register_blueprint(fractal_bp)
 
 with app.app_context():
     db.create_all()
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 def login_required(f):
     @wraps(f)

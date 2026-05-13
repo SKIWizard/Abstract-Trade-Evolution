@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-  <title>{% block title %}Abscure Trade · NFT Fractal Exchange{% endblock %}</title>
+  <title>{% block title %}Abstract Trade · NFT Fractal Exchange{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
@@ -103,6 +103,7 @@
       font-size: 1.8rem;
       letter-spacing: -0.03em;
       color: white;
+      text-decoration: none;
     }
     .logo i {
       color: #0855d1;
@@ -358,25 +359,10 @@
       border-top: 1px solid #202a38;
       padding: 48px 0 32px;
       margin-top: 60px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
+      text-align: center;
     }
     .footer-copy {
       color: #7e8da3;
-    }
-    .social-links {
-      display: flex;
-      gap: 28px;
-    }
-    .social-links a {
-      color: #a0b3d0;
-      font-size: 1.4rem;
-      transition: color 0.2s;
-    }
-    .social-links a:hover {
-      color: white;
     }
     .toast {
       position: fixed;
@@ -418,6 +404,38 @@
     }
     .mobile-nav.active {
       display: flex;
+    }
+    .wallet-dropdown {
+      position: absolute;
+      top: 110%;
+      right: 0;
+      background: #121a24;
+      border: 1px solid #2d3748;
+      border-radius: 16px;
+      padding: 8px 0;
+      min-width: 180px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+      z-index: 1001;
+      backdrop-filter: blur(10px);
+    }
+    .wallet-dropdown a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      color: #cbd5e8;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .wallet-dropdown a:hover {
+      background: #0855d120;
+      color: white;
+    }
+    .wallet-dropdown hr {
+      border: 0;
+      border-top: 1px solid #2d3748;
+      margin: 4px 12px;
     }
     @media (max-width: 900px) {
       .hero {
@@ -476,38 +494,6 @@
       .fractal-showcase { gap: 8px; }
       .mobile-break { display: block; }
     }
-    .wallet-dropdown {
-      position: absolute;
-      top: 110%;
-      right: 0;
-      background: #121a24;
-      border: 1px solid #2d3748;
-      border-radius: 16px;
-      padding: 8px 0;
-      min-width: 180px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.5);
-      z-index: 1001;
-      backdrop-filter: blur(10px);
-    }
-    .wallet-dropdown a {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 16px;
-      color: #cbd5e8;
-      text-decoration: none;
-      font-size: 0.95rem;
-      transition: background 0.2s;
-    }
-    .wallet-dropdown a:hover {
-      background: #0855d120;
-      color: white;
-    }
-    .wallet-dropdown hr {
-      border: 0;
-      border-top: 1px solid #2d3748;
-      margin: 4px 12px;
-    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -515,10 +501,10 @@
 <div class="container">
   <header>
     <div class="header">
-      <div class="logo">
+      <a href="/" class="logo">
         <i class="fas fa-cube"></i>
-        <span>Abscure Trade</span>
-      </div>
+        <span>Abstract Trade</span>
+      </a>
       <nav class="nav">
         <a href="/">Marketplace</a>
         <a href="/collections">Collections</a>
@@ -532,7 +518,7 @@
           </button>
           <div id="walletDropdown" class="wallet-dropdown" style="display: none;">
             <a href="/profile"><i class="fas fa-user"></i> Личный кабинет</a>
-            <a href="/my-nfts"><i class="fas fa-image"></i> Мои NFT</a>
+            <a href="/my-nfts"><i class="fas fa-image"></i> Мои фракталы</a>
             <a href="/settings"><i class="fas fa-cog"></i> Настройки</a>
             <hr style="border-color: #253040; margin: 4px 0;">
             <a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Выйти</a>
@@ -546,6 +532,7 @@
       <a href="/collections">Collections</a>
       <a href="/analytics">Analytics</a>
       <a href="/about">About</a>
+      <a href="/my-nfts">Мои фракталы</a>
       <a href="#" id="mobileConnectBtn" style="border-bottom: none;">Connect Wallet</a>
     </div>
   </header>
@@ -554,20 +541,13 @@
   </main>
   <footer class="footer">
     <div class="footer-copy">
-      © 2026 Abscure Trade. Децентрализованная биржа фрактальных NFT. <br class="mobile-break">Все права защищены.
-    </div>
-    <div class="social-links">
-      <a href="#"><i class="fab fa-twitter"></i></a>
-      <a href="#"><i class="fab fa-discord"></i></a>
-      <a href="#"><i class="fab fa-telegram"></i></a>
-      <a href="#"><i class="fab fa-github"></i></a>
+      © 2026 Abstract Trade. Децентрализованная биржа фрактальных NFT.
     </div>
   </footer>
 </div>
 <div id="toastMsg" class="toast"></div>
 <script>
   (function() {
-    const API_BASE_URL = 'http://localhost:8000';
     const connectBtn = document.getElementById('connectWalletBtn');
     const walletBtnSpan = document.getElementById('walletBtnText');
     const mobileConnectBtn = document.getElementById('mobileConnectBtn');
@@ -576,9 +556,19 @@
     const logoutLink = document.getElementById('logoutLink');
     let currentAccount = null;
     let jwtToken = null;
-    let isRestoringSession = true;
 
-    const savedToken = localStorage.getItem('jwt_token');
+    function getToken() {
+      const token = localStorage.getItem('jwt_token');
+      if (token) return token;
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'jwt_token') return decodeURIComponent(value);
+      }
+      return null;
+    }
+
+    const savedToken = getToken();
     const savedAddress = localStorage.getItem('wallet_address');
     if (savedToken && savedAddress) {
         jwtToken = savedToken;
@@ -587,10 +577,11 @@
     }
 
     function showToast(message, isError = false) {
+      if (!toast) return;
       toast.textContent = message;
       toast.style.opacity = '1';
       toast.style.borderLeftColor = isError ? '#e5484d' : '#0855d1';
-      setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+      setTimeout(() => { if (toast) toast.style.opacity = '0'; }, 4000);
     }
 
     function shortenAddress(address) {
@@ -599,14 +590,15 @@
     }
 
     function updateUI(account) {
+      if (!walletBtnSpan) return;
       if (account) {
-        walletBtnSpan.textContent = 'Личный кабинет';
-        if (mobileConnectBtn) mobileConnectBtn.textContent = 'Личный кабинет';
-        connectBtn.classList.add('connected');
+        walletBtnSpan.textContent = shortenAddress(account);
+        if (mobileConnectBtn) mobileConnectBtn.textContent = shortenAddress(account);
+        if (connectBtn) connectBtn.classList.add('connected');
       } else {
         walletBtnSpan.textContent = 'Connect';
         if (mobileConnectBtn) mobileConnectBtn.textContent = 'Connect Wallet';
-        connectBtn.classList.remove('connected');
+        if (connectBtn) connectBtn.classList.remove('connected');
         if (dropdown) dropdown.style.display = 'none';
       }
     }
@@ -629,28 +621,29 @@
     }
 
     async function requestNonce(address) {
-      const response = await fetch(`${API_BASE_URL}/auth/nonce`, {
+      const response = await fetch('/auth/nonce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address })
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Failed to get nonce');
+        throw new Error(errData.error || 'Failed to get nonce');
       }
       const data = await response.json();
       return data.nonce;
     }
 
     async function loginWithSignature(address, signature) {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, signature })
+        body: JSON.stringify({ address, signature }),
+        credentials: 'same-origin'
       });
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Login failed');
+        throw new Error(errData.error || 'Login failed');
       }
       const data = await response.json();
       return data.access_token;
@@ -658,60 +651,41 @@
 
     async function connectAndAuthenticate() {
       if (!window.ethereum) {
-        showToast('Web3 кошелек не обнаружен.', true);
+        showToast('Web3 кошелек не обнаружен. Установите MetaMask', true);
         return false;
       }
-      let selectedProvider = null;
-      if (window.ethereum?.providers && window.ethereum.providers.length > 0) {
-        const providersList = window.ethereum.providers;
-        const walletChoice = document.createElement('div');
-        walletChoice.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #151b26; padding: 20px; border-radius: 16px; z-index: 1000; border: 1px solid #0855d1;';
-        walletChoice.innerHTML = '<h3>Выберите кошелек</h3>';
-        for (const provider of providersList) {
-          const btn = document.createElement('button');
-          btn.textContent = provider.isMetaMask ? 'MetaMask' : (provider.isCoinbaseWallet ? 'Coinbase Wallet' : 'Другой кошелек');
-          btn.style.cssText = 'display: block; margin: 10px 0; padding: 10px; background: #0855d1; border: none; border-radius: 8px; color: white; cursor: pointer;';
-          btn.onclick = () => {
-            selectedProvider = provider;
-            document.body.removeChild(walletChoice);
-            proceedWithAuth(selectedProvider);
-          };
-          walletChoice.appendChild(btn);
-        }
-        document.body.appendChild(walletChoice);
-        return;
-      } else {
-        selectedProvider = window.ethereum;
-        proceedWithAuth(selectedProvider);
-      }
-      async function proceedWithAuth(provider) {
-        try {
-          const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          if (accounts.length === 0) throw new Error('Нет доступных аккаунтов');
-          const account = accounts[0];
-          currentAccount = account;
-          updateUI(currentAccount);
-          showToast(`Получен адрес: ${shortenAddress(account)}. Запрос nonce...`);
-          const nonce = await requestNonce(currentAccount);
-          showToast(`Подпишите сообщение в кошельке...`);
-          const message = `Вход на Abscure Trade: ${nonce}`;
-          const signature = await provider.request({
-            method: 'personal_sign',
-            params: [message, currentAccount]
-          });
-          showToast(`Отправка подписи на сервер...`);
-          const token = await loginWithSignature(currentAccount, signature);
-          jwtToken = token;
-          localStorage.setItem('jwt_token', token);
-          localStorage.setItem('wallet_address', currentAccount);
-          document.cookie = `jwt_token=${token}; path=/; max-age=86400; SameSite=Lax`;
-          showToast(`Успешный вход!`, false);
-        } catch (error) {
-          console.error(error);
-          showToast(`Ошибка: ${error.message}`, true);
-          currentAccount = null;
-          updateUI(null);
-        }
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length === 0) throw new Error('Нет доступных аккаунтов');
+        const account = accounts[0];
+        currentAccount = account;
+        updateUI(currentAccount);
+
+        showToast(`Запрос nonce...`);
+        const nonce = await requestNonce(currentAccount);
+
+        showToast(`Подпишите сообщение в кошельке...`);
+        const message = `Вход на Abstract Trade: ${nonce}`;
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, currentAccount]
+        });
+
+        showToast(`Отправка подписи...`);
+        const token = await loginWithSignature(currentAccount, signature);
+        jwtToken = token;
+        localStorage.setItem('jwt_token', token);
+        localStorage.setItem('wallet_address', currentAccount);
+        document.cookie = `jwt_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+        showToast(`Успешный вход!`, false);
+        return true;
+      } catch (error) {
+        console.error(error);
+        showToast(`Ошибка: ${error.message || error}`, true);
+        currentAccount = null;
+        updateUI(null);
+        return false;
       }
     }
 
@@ -726,31 +700,28 @@
     }
 
     async function restoreSession() {
-      if (savedToken && savedAddress) {
+      const savedTokenLocal = getToken();
+      if (savedTokenLocal && savedAddress) {
         try {
-          const response = await fetch(`${API_BASE_URL}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${savedToken}` }
+          const response = await fetch('/auth/me', {
+            headers: { 'Authorization': `Bearer ${savedTokenLocal}` }
           });
           if (response.ok) {
-            document.cookie = `jwt_token=${savedToken}; path=/; max-age=86400; SameSite=Lax`;
+            jwtToken = savedTokenLocal;
+            currentAccount = savedAddress;
+            updateUI(currentAccount);
           } else {
             logout();
           }
-        } catch {
+        } catch (error) {
+          console.error('Restore session error:', error);
           logout();
         }
       }
-      isRestoringSession = false;
     }
 
     async function onConnectClick(e) {
       e.stopPropagation();
-
-      if (isRestoringSession) {
-        showToast('Подождите, восстанавливаем сессию...', false);
-        return;
-      }
-
       if (jwtToken && currentAccount) {
         toggleDropdown();
       } else {
@@ -760,12 +731,6 @@
 
     function onMobileConnectClick(e) {
       e.preventDefault();
-
-      if (isRestoringSession) {
-        showToast('Подождите, восстанавливаем сессию...', false);
-        return;
-      }
-
       if (jwtToken && currentAccount) {
         window.location.href = '/profile';
       } else {
@@ -808,18 +773,10 @@
           logout();
         }
       });
-      window.ethereum.on('chainChanged', (chainId) => {
-        showToast(`Сеть изменена: ${parseInt(chainId, 16)}. Приложение работает на Ethereum Mainnet.`, false);
-      });
     }
 
-    if (savedToken && savedAddress) {
-      restoreSession();
-    } else {
-      isRestoringSession = false;
-    }
+    restoreSession();
   })();
 </script>
-{% block extra_js %}{% endblock %}
 </body>
 </html>

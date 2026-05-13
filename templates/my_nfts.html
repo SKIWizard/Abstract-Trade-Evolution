@@ -1,10 +1,449 @@
 {% extends "base.html" %}
 
-{% block title %}Мои NFT – Abscure Trade{% endblock %}
+{% block title %}Мои фракталы – Abstract Trade{% endblock %}
 
 {% block content %}
+<style>
+    .nfts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+        margin-top: 40px;
+    }
+    .nft-item {
+        background: #121a24;
+        border-radius: 24px;
+        padding: 16px;
+        border: 1px solid #2d3748;
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .nft-item:hover {
+        transform: translateY(-4px);
+        border-color: #0855d1;
+    }
+    .nft-preview {
+        width: 100%;
+        aspect-ratio: 1/1;
+        background: #0b0e14;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .nft-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .nft-preview .placeholder {
+        color: #4a5568;
+        font-size: 3rem;
+    }
+    .nft-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .nft-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #cbd5e8;
+        background: transparent;
+        border: 1px solid #2d3748;
+        border-radius: 8px;
+        padding: 6px 10px;
+        width: 70%;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .nft-name:hover {
+        border-color: #0855d1;
+        background: rgba(8,85,209,0.1);
+    }
+    .nft-name:focus {
+        outline: none;
+        border-color: #0855d1;
+        background: #0b0e14;
+    }
+    .nft-date {
+        font-size: 0.7rem;
+        color: #7e8da3;
+        white-space: nowrap;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 60px;
+    }
+    .loading-spinner i {
+        font-size: 3rem;
+        color: #0855d1;
+        animation: spin 1s linear infinite;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+    .empty-state i {
+        font-size: 5rem;
+        color: #2d3748;
+        margin-bottom: 20px;
+    }
+    .empty-state h3 {
+        margin-bottom: 12px;
+    }
+    .empty-state p {
+        color: #8e9db5;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+    .modal.active {
+        display: flex;
+    }
+    .modal-content {
+        max-width: 90vw;
+        max-height: 90vh;
+        background: #121a24;
+        border-radius: 32px;
+        padding: 20px;
+        position: relative;
+    }
+    .modal-content img {
+        max-width: 100%;
+        max-height: 70vh;
+        border-radius: 20px;
+    }
+    .modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 2rem;
+        cursor: pointer;
+    }
+    .modal-info {
+        margin-top: 16px;
+        padding: 12px;
+        background: #0b0e14;
+        border-radius: 16px;
+    }
+    .modal-info p {
+        font-size: 0.8rem;
+        color: #8e9db5;
+        word-break: break-all;
+    }
+    .modal-name-input {
+        width: 100%;
+        padding: 8px 12px;
+        background: #1e2a3a;
+        border: 1px solid #0855d1;
+        border-radius: 8px;
+        color: white;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+    .modal-name-input:focus {
+        outline: none;
+        border-color: #3d7eff;
+    }
+    .save-name-btn {
+        background: #0855d1;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-size: 0.8rem;
+        margin-left: 8px;
+    }
+    .save-name-btn:hover {
+        background: #0642a3;
+    }
+    .name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
 <div style="padding: 40px 0;">
-    <h1>Мои NFT</h1>
-    <p>Здесь будут ваши NFT</p>
+    <h1>Мои фракталы</h1>
+    <p>Ваша коллекция фракталов: <strong id="fractalCount">0</strong></p>
+
+    <div id="nftsContainer">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner"></i>
+            <p>Загрузка ваших фракталов...</p>
+        </div>
+    </div>
 </div>
+
+<div id="fractalModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <img id="modalImage" src="" alt="Фрактал">
+        <div class="modal-info">
+            <div class="name-row">
+                <input type="text" id="modalNameInput" class="modal-name-input" placeholder="Название фрактала">
+                <button class="save-name-btn" onclick="saveFractalName()">Сохранить</button>
+            </div>
+            <p><strong>ID:</strong> <span id="modalId"></span></p>
+            <p><strong>Формула:</strong> <span id="modalFormula"></span></p>
+            <p><strong>Создан:</strong> <span id="modalDate"></span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const nftsContainer = document.getElementById('nftsContainer');
+    const fractalCountSpan = document.getElementById('fractalCount');
+    let currentFractalId = null;
+
+    function getToken() {
+        const token = localStorage.getItem('jwt_token');
+        if (token) return token;
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'jwt_token') return decodeURIComponent(value);
+        }
+        return null;
+    }
+
+    async function loadMyFractals() {
+        const token = getToken();
+        if (!token) {
+            nftsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-lock"></i>
+                    <h3>Требуется авторизация</h3>
+                    <p>Подключите кошелек для просмотра ваших фракталов</p>
+                </div>
+            `;
+            return;
+        }
+
+        try {
+            const response = await fetch('/fractal/my-fractals', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('wallet_address');
+                nftsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-lock"></i>
+                        <h3>Сессия истекла</h3>
+                        <p>Пожалуйста, войдите заново</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.success && data.fractals.length > 0) {
+                fractalCountSpan.textContent = data.fractals.length;
+                renderFractals(data.fractals);
+            } else {
+                fractalCountSpan.textContent = '0';
+                nftsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-cube"></i>
+                        <h3>У вас пока нет фракталов</h3>
+                        <p>Перейдите на страницу создания и сгенерируйте свой первый фрактал!</p>
+                        <a href="/create" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: #0855d1; color: white; text-decoration: none; border-radius: 40px;">Создать фрактал</a>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            nftsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Ошибка загрузки</h3>
+                    <p>Не удалось загрузить ваши фракталы</p>
+                </div>
+            `;
+        }
+    }
+
+    function renderFractals(fractals) {
+        nftsContainer.innerHTML = `
+            <div class="nfts-grid">
+                ${fractals.map(fractal => `
+                    <div class="nft-item" data-id="${fractal.id}">
+                        <div class="nft-preview">
+                            <div class="placeholder">
+                                <i class="fas fa-cube"></i>
+                            </div>
+                        </div>
+                        <div class="nft-info">
+                            <input type="text" class="nft-name" data-id="${fractal.id}" value="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}" maxlength="50">
+                            <span class="nft-date">${new Date(fractal.created_at).toLocaleDateString('ru-RU')}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        document.querySelectorAll('.nft-item').forEach(item => {
+            const fractalId = item.dataset.id;
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('nft-name')) return;
+                showFractalDetail(fractalId);
+            });
+        });
+
+        document.querySelectorAll('.nft-name').forEach(input => {
+            input.addEventListener('blur', async (e) => {
+                const fractalId = e.target.dataset.id;
+                const newName = e.target.value;
+                await saveFractalNameDirect(fractalId, newName);
+            });
+            input.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                }
+            });
+        });
+
+        fractals.forEach(async (fractal) => {
+            try {
+                const token = getToken();
+                const response = await fetch(`/fractal/fractal/${fractal.id}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const previewDiv = document.querySelector(`.nft-item[data-id="${fractal.id}"] .nft-preview`);
+                    if (previewDiv) {
+                        previewDiv.innerHTML = `<img src="${data.image}" alt="Фрактал">`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading preview:', error);
+            }
+        });
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    async function saveFractalNameDirect(fractalId, name) {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch(`/fractal/fractal/${fractalId}/name`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: name })
+            });
+            const data = await response.json();
+            if (!data.success) {
+                console.error('Error saving name:', data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function saveFractalName() {
+        const name = document.getElementById('modalNameInput').value;
+        if (!currentFractalId) return;
+
+        const token = getToken();
+        if (!token) return;
+
+        try {
+            const response = await fetch(`/fractal/fractal/${currentFractalId}/name`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: name })
+            });
+            const data = await response.json();
+            if (data.success) {
+                const nameInput = document.querySelector(`.nft-name[data-id="${currentFractalId}"]`);
+                if (nameInput) {
+                    nameInput.value = name;
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function showFractalDetail(fractalId) {
+        const token = getToken();
+        if (!token) return;
+
+        currentFractalId = fractalId;
+
+        try {
+            const response = await fetch(`/fractal/fractal/${fractalId}`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('modalImage').src = data.image;
+                document.getElementById('modalId').textContent = fractalId;
+                document.getElementById('modalFormula').textContent = data.formula;
+                document.getElementById('modalDate').textContent = new Date(data.created_at).toLocaleString('ru-RU');
+                document.getElementById('modalNameInput').value = data.name || '';
+                document.getElementById('fractalModal').classList.add('active');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('fractalModal').classList.remove('active');
+        currentFractalId = null;
+    }
+
+    loadMyFractals();
+</script>
 {% endblock %}

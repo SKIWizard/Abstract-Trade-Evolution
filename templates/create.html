@@ -201,6 +201,41 @@
             pointer-events: none;
         }
 
+        .auth-warning {
+            text-align: center;
+            padding: 40px;
+            background: #10161f;
+            border-radius: 32px;
+            border: 1px solid #e5484d40;
+        }
+
+        .auth-warning i {
+            font-size: 4rem;
+            color: #e5484d;
+            margin-bottom: 20px;
+        }
+
+        .auth-warning h2 {
+            margin-bottom: 16px;
+        }
+
+        .auth-warning p {
+            color: #8e9db5;
+            margin-bottom: 24px;
+        }
+
+        .auth-warning .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background: #0855d1;
+            color: white;
+            text-decoration: none;
+            border-radius: 40px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
             .header {
                 padding: 16px 20px;
@@ -248,7 +283,13 @@
 
     <div class="main-container">
         <div class="center-wrapper" id="centerWrapper">
-            <button class="generate-btn" id="generateBtn">
+            <div class="auth-warning" id="authWarning" style="display: none;">
+                <i class="fas fa-lock"></i>
+                <h2>Требуется авторизация</h2>
+                <p>Для генерации фракталов необходимо подключить криптокошелек</p>
+                <button class="btn" id="connectWalletBtn">Подключить кошелек</button>
+            </div>
+            <button class="generate-btn" id="generateBtn" style="display: none;">
                 <i class="fas fa-cube"></i>
                 <span>Сгенерировать</span>
             </button>
@@ -258,9 +299,10 @@
     <div id="toastMsg" class="toast"></div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:8000';
         const centerWrapper = document.getElementById('centerWrapper');
         const generateBtn = document.getElementById('generateBtn');
+        const authWarning = document.getElementById('authWarning');
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
         const toast = document.getElementById('toastMsg');
 
         function showToast(message, isError = false) {
@@ -270,6 +312,53 @@
             setTimeout(() => {
                 toast.style.opacity = '0';
             }, 3000);
+        }
+
+        function getToken() {
+            const token = localStorage.getItem('jwt_token');
+            if (token) {
+                return token;
+            }
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'jwt_token') {
+                    return decodeURIComponent(value);
+                }
+            }
+            return null;
+        }
+
+        async function checkAuth() {
+            const token = getToken();
+            if (token) {
+                try {
+                    const response = await fetch('/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        if (generateBtn) generateBtn.style.display = 'flex';
+                        if (authWarning) authWarning.style.display = 'none';
+                        return true;
+                    } else {
+                        localStorage.removeItem('jwt_token');
+                        localStorage.removeItem('wallet_address');
+                        document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                        if (generateBtn) generateBtn.style.display = 'none';
+                        if (authWarning) authWarning.style.display = 'block';
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                    return false;
+                }
+            } else {
+                if (generateBtn) generateBtn.style.display = 'none';
+                if (authWarning) authWarning.style.display = 'block';
+                return false;
+            }
         }
 
         function showLoading() {
@@ -285,8 +374,18 @@
             centerWrapper.innerHTML = `
                 <div class="fractal-container">
                     <img class="fractal-image" src="${imageSrc}" alt="Фрактал">
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="generate-btn" id="generateAgainBtn" style="width: auto; height: auto; padding: 12px 24px; border-radius: 40px; font-size: 1rem; display: inline-flex;">
+                            <i class="fas fa-sync-alt" style="margin-right: 8px;"></i>
+                            <span>Сгенерировать новый</span>
+                        </button>
+                    </div>
                 </div>
             `;
+            const generateAgainBtn = document.getElementById('generateAgainBtn');
+            if (generateAgainBtn) {
+                generateAgainBtn.addEventListener('click', generateFractal);
+            }
         }
 
         function showButton() {
@@ -296,27 +395,46 @@
                     <span>Сгенерировать</span>
                 </button>
             `;
-            document.getElementById('generateBtn').addEventListener('click', generateFractal);
+            const newGenerateBtn = document.getElementById('generateBtn');
+            if (newGenerateBtn) {
+                newGenerateBtn.addEventListener('click', generateFractal);
+            }
         }
 
         async function generateFractal() {
+            const token = getToken();
+            if (!token) {
+                showToast('Необходимо авторизоваться', true);
+                await checkAuth();
+                return;
+            }
+
             showLoading();
 
             try {
-                const response = await fetch(`${API_BASE_URL}/fractal/generate`, {
+                const response = await fetch('/fractal/generate', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
-                    }
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'same-origin'
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
                     showFractal(data.image);
-                    showToast('Фрактал успешно сгенерирован!');
+                    showToast('Фрактал успешно сгенерирован и добавлен в вашу коллекцию!');
+                } else if (response.status === 401) {
+                    showToast('Сессия истекла, войдите заново', true);
+                    localStorage.removeItem('jwt_token');
+                    localStorage.removeItem('wallet_address');
+                    document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    await checkAuth();
+                    showButton();
                 } else {
-                    showToast('Ошибка: ' + data.error, true);
+                    showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), true);
                     showButton();
                 }
             } catch (error) {
@@ -326,7 +444,67 @@
             }
         }
 
-        generateBtn.addEventListener('click', generateFractal);
+        async function connectWallet() {
+            if (!window.ethereum) {
+                showToast('Web3 кошелек не обнаружен. Установите MetaMask', true);
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (accounts.length === 0) {
+                    showToast('Нет доступных аккаунтов', true);
+                    return;
+                }
+
+                const address = accounts[0];
+                showToast(`Подключаем ${address.slice(0, 6)}...${address.slice(-4)}`);
+
+                const nonceResponse = await fetch('/auth/nonce', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address })
+                });
+                const nonceData = await nonceResponse.json();
+                const nonce = nonceData.nonce;
+
+                const message = `Вход на Abscure Trade: ${nonce}`;
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, address]
+                });
+
+                const loginResponse = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, signature }),
+                    credentials: 'same-origin'
+                });
+                const loginData = await loginResponse.json();
+
+                if (loginResponse.ok) {
+                    localStorage.setItem('jwt_token', loginData.access_token);
+                    localStorage.setItem('wallet_address', address);
+                    document.cookie = `jwt_token=${loginData.access_token}; path=/; max-age=86400; SameSite=Lax`;
+                    showToast('Успешный вход!');
+                    await checkAuth();
+                } else {
+                    showToast('Ошибка входа: ' + loginData.error, true);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Ошибка: ' + error.message, true);
+            }
+        }
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', generateFractal);
+        }
+        if (connectWalletBtn) {
+            connectWalletBtn.addEventListener('click', connectWallet);
+        }
+
+        checkAuth();
     </script>
 </body>
 </html>

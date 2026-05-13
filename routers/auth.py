@@ -5,6 +5,7 @@ from jose import jwt
 from datetime import datetime, timedelta
 import secrets
 from expiringdict import ExpiringDict
+from models import db, User
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -19,7 +20,7 @@ def generate_nonce():
 
 def create_access_token(data, expires_delta=None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -30,6 +31,21 @@ def verify_signature(address, message, signature):
         return recovered.lower() == address.lower()
     except Exception:
         return False
+
+def get_or_create_user(address):
+    user = User.query.filter_by(wallet_address=address.lower()).first()
+    if user:
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        return user
+    user = User(
+        wallet_address=address.lower(),
+        created_at=datetime.utcnow(),
+        last_login=datetime.utcnow()
+    )
+    db.session.add(user)
+    db.session.commit()
+    return user
 
 @auth_bp.route("/nonce", methods=["POST"])
 def get_nonce():
@@ -50,18 +66,24 @@ def login():
     message = f"Вход на Abscure Trade: {stored_nonce}"
     if verify_signature(address, message, signature):
         del nonce_storage[address]
+        user = get_or_create_user(address)
         access_token = create_access_token(
-            data={"sub": address},
-            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            data={"sub": address, "user_id": user.id}
         )
-        response = make_response(jsonify({"access_token": access_token, "token_type": "bearer"}))
+        response = make_response(jsonify({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user.id,
+            "wallet_address": address
+        }))
         response.set_cookie(
             'jwt_token',
             access_token,
             httponly=False,
             secure=False,
             samesite='Lax',
-            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            path='/'
         )
         return response
     return jsonify({"error": "auth failed"}), 401
@@ -69,7 +91,7 @@ def login():
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     response = make_response(jsonify({"message": "Logged out successfully"}))
-    response.delete_cookie('jwt_token')
+    response.delete_cookie('jwt_token', path='/')
     return response
 
 @auth_bp.route("/me", methods=["GET"])
@@ -86,8 +108,19 @@ def get_me():
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         address = payload.get("sub")
+        user_id = payload.get("user_id")
         if address:
-            return jsonify({"address": address})
+            user = User.query.filter_by(wallet_address=address).first()
+            if user:
+                return jsonify({
+                    "address": address,
+                    "user_id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "avatar": user.avatar,
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                    "last_login": user.last_login.isoformat() if user.last_login else None
+                })
     except:
         pass
 
