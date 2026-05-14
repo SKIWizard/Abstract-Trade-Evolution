@@ -38,6 +38,7 @@ class Fractal(db.Model):
     escape_radius = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_listed = db.Column(db.Boolean, default=False)
+    preview_base64 = db.Column(db.Text, nullable=True)
 
 
 class Listing(db.Model):

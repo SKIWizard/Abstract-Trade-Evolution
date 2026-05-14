@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 import numpy as np
 import random
 import base64
+import re
 from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')
@@ -64,7 +65,6 @@ def login_required_for_fractal(f):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             address = payload.get('sub')
-            user_id = payload.get('user_id')
             if not address:
                 return jsonify({"success": False, "error": "invalid token"}), 401
             user = User.query.filter_by(wallet_address=address).first()
@@ -81,6 +81,25 @@ def get_random_cmap():
         return random.choice(rare_cmaps)
     else:
         return random.choice(trash_cmaps)
+
+def fractal_to_base64_with_size(fractal_data, cmap_name, size=300):
+    try:
+        fig = plt.figure(figsize=(size/100, size/100), facecolor='black', dpi=100)
+        ax = fig.add_subplot(111)
+        ax.set_facecolor('black')
+        ax.set_axis_off()
+        cmap = plt.get_cmap(cmap_name)
+        ax.imshow(fractal_data, cmap=cmap, extent=[-2, 2, -2, 2], origin='lower', aspect='auto')
+        buffer = BytesIO()
+        plt.tight_layout(pad=0)
+        plt.savefig(buffer, format='png', bbox_inches='tight', facecolor='black', dpi=100)
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode()
+        plt.close(fig)
+        plt.close('all')
+        return image_base64
+    except Exception:
+        return create_placeholder_image()
 
 def get_random_formula():
     ops = ['+', '-', '*', '/', '**']
@@ -116,7 +135,7 @@ def generate_fractal_data(formula_str, x_range, y_range, res):
             z = z_new
             if not np.any(mask):
                 break
-        except:
+        except Exception:
             break
     if fractal_map.max() > 0:
         fractal_map = np.log1p(fractal_map)
@@ -171,6 +190,16 @@ def create_placeholder_image():
     plt.close(fig)
     return image_base64
 
+# ========== ФУНКЦИЯ МУТАЦИИ КОЭФФИЦИЕНТОВ ==========
+def mutate_formula_constants(formula):
+    """Заменяет все числа в формуле на новые случайные значения от -2 до 2"""
+    def replace_number(match):
+        return f"{random.uniform(-2, 2):.3f}"
+    # Заменяем все числа, не являющиеся частью имён функций или переменных
+    new_formula = re.sub(r'(?<![a-zA-Z_])-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?', replace_number, formula)
+    return new_formula
+
+# ========== МАРШРУТЫ ==========
 @fractal_bp.route("/generate", methods=["POST"])
 @login_required_for_fractal
 def generate_fractal():
@@ -179,13 +208,10 @@ def generate_fractal():
         formula = find_good_fractal()
         x_range = [mp.mpf(-2), mp.mpf(2)]
         y_range = [mp.mpf(-2), mp.mpf(2)]
-        fractal_data = generate_fractal_data(
-            formula,
-            x_range,
-            y_range,
-            res=params["res_high"]
-        )
+        fractal_data = generate_fractal_data(formula, x_range, y_range, res=params["res_high"])
         image_base64, cmap_name = fractal_to_base64(fractal_data)
+        preview_base64 = fractal_to_base64_with_size(fractal_data, cmap_name, size=300)
+
         fractal_record = Fractal(
             user_id=request.current_user.id,
             formula=formula,
@@ -196,7 +222,8 @@ def generate_fractal():
             y_max=str(y_range[1]),
             res=params["res_high"],
             max_iter=params["max_iter"],
-            escape_radius=params["escape_radius"]
+            escape_radius=params["escape_radius"],
+            preview_base64=preview_base64
         )
         db.session.add(fractal_record)
         db.session.commit()
@@ -205,6 +232,46 @@ def generate_fractal():
             "image": f"data:image/png;base64,{image_base64}",
             "formula": formula,
             "fractal_id": fractal_record.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@fractal_bp.route("/regenerate/<int:fractal_id>", methods=["POST"])
+@login_required_for_fractal
+def regenerate_fractal(fractal_id):
+    user = request.current_user
+    if user.balance < 1000:
+        return jsonify({"success": False, "error": "Недостаточно токенов (нужно 1000 FRX)"}), 400
+
+    fractal = Fractal.query.filter_by(id=fractal_id, user_id=user.id).first()
+    if not fractal:
+        return jsonify({"success": False, "error": "Фрактал не найден"}), 404
+
+    try:
+        old_formula = fractal.formula
+        new_formula = mutate_formula_constants(old_formula)
+
+        # Используем те же границы, разрешение, итерации
+        x_range = [mp.mpf(fractal.x_min), mp.mpf(fractal.x_max)]
+        y_range = [mp.mpf(fractal.y_min), mp.mpf(fractal.y_max)]
+
+        fractal_data = generate_fractal_data(new_formula, x_range, y_range, res=fractal.res)
+        image_base64, cmap_name = fractal_to_base64(fractal_data)
+        preview_base64 = fractal_to_base64_with_size(fractal_data, cmap_name, size=300)
+
+        fractal.formula = new_formula
+        fractal.cmap = cmap_name
+        fractal.preview_base64 = preview_base64
+
+        user.balance -= 1000
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "image": f"data:image/png;base64,{image_base64}",
+            "new_balance": user.balance,
+            "new_formula": new_formula
         })
     except Exception as e:
         db.session.rollback()
@@ -262,16 +329,22 @@ def get_fractal(fractal_id):
         fractal = Fractal.query.filter_by(id=fractal_id, user_id=request.current_user.id).first()
         if not fractal:
             return jsonify({"success": False, "error": "fractal not found"}), 404
-        fractal_data = generate_fractal_data(
-            fractal.formula,
-            [float(fractal.x_min), float(fractal.x_max)],
-            [float(fractal.y_min), float(fractal.y_max)],
-            res=fractal.res
-        )
-        image_base64, _ = fractal_to_base64_with_cmap(fractal_data, fractal.cmap)
+        if fractal.preview_base64:
+            preview_url = f"data:image/png;base64,{fractal.preview_base64}"
+        else:
+            fractal_data = generate_fractal_data(
+                fractal.formula,
+                [float(fractal.x_min), float(fractal.x_max)],
+                [float(fractal.y_min), float(fractal.y_max)],
+                res=fractal.res
+            )
+            preview_base64 = fractal_to_base64_with_size(fractal_data, fractal.cmap, size=300)
+            fractal.preview_base64 = preview_base64
+            db.session.commit()
+            preview_url = f"data:image/png;base64,{preview_base64}"
         return jsonify({
             "success": True,
-            "image": f"data:image/png;base64,{image_base64}",
+            "image": preview_url,
             "formula": fractal.formula,
             "cmap": fractal.cmap,
             "name": fractal.name,
@@ -287,13 +360,10 @@ def update_fractal_name(fractal_id):
         fractal = Fractal.query.filter_by(id=fractal_id, user_id=request.current_user.id).first()
         if not fractal:
             return jsonify({"success": False, "error": "fractal not found"}), 404
-
         data = request.get_json()
         new_name = data.get("name", "").strip()
-
         fractal.name = new_name if new_name else None
         db.session.commit()
-
         return jsonify({"success": True, "name": fractal.name})
     except Exception as e:
         db.session.rollback()

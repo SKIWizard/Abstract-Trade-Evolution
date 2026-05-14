@@ -7,12 +7,17 @@ import secrets
 from expiringdict import ExpiringDict
 from models import db, User
 from functools import wraps
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-SECRET_KEY = "NFHIBSNJKbOBFPHYBEDFnmdfsdufnNFIUDFODFJE8HFiupdhgbfyg)*^fd&^%dfSC7fyZScxUCBH78SGXCScbdsgb8&GBADSHfc_&(*DGFDSbgciuDGBCDSGBCDS&YGBVcfdbuGD&FVSBD87vgDSCFSdcvoihfbwsgrvOIUUWOIRRWVBNGOIU"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
+MAX_BALANCE_ADD = float(os.getenv("MAX_BALANCE_ADD", 10))
 
 nonce_storage = ExpiringDict(max_len=1000, max_age_seconds=300)
 
@@ -96,7 +101,7 @@ def login():
         return _build_cors_preflight_response()
     data = request.get_json()
     if not data:
-        return jsonify({"error": "invalid request"}), 400
+        return jsonify({"error": "invalid request body"}), 400
     address = data.get("address", "").lower()
     signature = data.get("signature", "")
     if not address or not signature:
@@ -120,7 +125,7 @@ def login():
         response.set_cookie(
             'jwt_token',
             access_token,
-            httponly=False,
+            httponly=True,
             secure=False,
             samesite='Lax',
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
@@ -192,7 +197,10 @@ def add_balance():
         if not user:
             return jsonify({"error": "unauthorized"}), 401
         data = request.get_json()
-        amount = data.get("amount", 1)
+        amount = data.get("amount", 0)
+        if not isinstance(amount, (int, float)) or amount <= 0 or amount > MAX_BALANCE_ADD:
+            return jsonify({"error": f"Invalid amount. Must be between 0.01 and {MAX_BALANCE_ADD}"}), 400
+        amount = round(amount, 2)
         user.balance = (user.balance or 0) + amount
         db.session.commit()
         response = jsonify({"success": True, "balance": user.balance})

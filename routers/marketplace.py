@@ -2,9 +2,13 @@ from flask import Blueprint, jsonify, request
 from models import db, User, Fractal, Listing
 from routers.auth import get_current_user_from_token
 from functools import wraps
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 marketplace_bp = Blueprint('marketplace', __name__, url_prefix='/marketplace')
-
+MAX_PRICE = float(os.getenv("MAX_PRICE", 10000))
 
 def login_required_marketplace(f):
     @wraps(f)
@@ -14,9 +18,7 @@ def login_required_marketplace(f):
             return jsonify({"error": "unauthorized"}), 401
         request.current_user = user
         return f(*args, **kwargs)
-
     return decorated_function
-
 
 @marketplace_bp.route("/list", methods=["POST"])
 @login_required_marketplace
@@ -26,8 +28,8 @@ def list_fractal():
         fractal_id = data.get("fractal_id")
         price = data.get("price")
 
-        if not fractal_id or not price or price <= 0:
-            return jsonify({"error": "invalid data"}), 400
+        if not fractal_id or not price or price <= 0 or price > MAX_PRICE:
+            return jsonify({"error": f"Invalid price. Must be between 0.01 and {MAX_PRICE}"}), 400
 
         fractal = Fractal.query.filter_by(id=fractal_id, user_id=request.current_user.id).first()
         if not fractal:
@@ -65,7 +67,6 @@ def list_fractal():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
 @marketplace_bp.route("/unlist/<int:listing_id>", methods=["DELETE"])
 @login_required_marketplace
 def unlist_fractal(listing_id):
@@ -86,7 +87,6 @@ def unlist_fractal(listing_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
 @marketplace_bp.route("/listings", methods=["GET"])
 def get_listings():
     try:
@@ -95,7 +95,7 @@ def get_listings():
         listings_data = []
         for listing in listings:
             fractal = Fractal.query.get(listing.fractal_id)
-            if fractal and fractal.user_id != listing.seller_id:
+            if not fractal or fractal.user_id != listing.seller_id:
                 continue
 
             seller = User.query.get(listing.seller_id)
@@ -103,7 +103,7 @@ def get_listings():
             listings_data.append({
                 "id": listing.id,
                 "fractal_id": listing.fractal_id,
-                "fractal_name": fractal.name if fractal and fractal.name else f"Фрактал #{listing.fractal_id}",
+                "fractal_name": fractal.name if fractal and fractal.name else f"Fractal #{listing.fractal_id}",
                 "price": listing.price,
                 "seller_address": seller.wallet_address if seller else "unknown",
                 "created_at": listing.created_at.isoformat() if listing.created_at else None
@@ -112,7 +112,6 @@ def get_listings():
         return jsonify({"success": True, "listings": listings_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @marketplace_bp.route("/buy/<int:listing_id>", methods=["POST"])
 @login_required_marketplace
@@ -130,6 +129,9 @@ def buy_fractal(listing_id):
 
         if not fractal:
             return jsonify({"error": "fractal not found"}), 404
+
+        if fractal.user_id != listing.seller_id:
+            return jsonify({"error": "fractal ownership mismatch, listing invalid"}), 400
 
         if request.current_user.balance < listing.price:
             return jsonify({"error": "insufficient balance"}), 400
@@ -153,7 +155,6 @@ def buy_fractal(listing_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
 @marketplace_bp.route("/my-listings", methods=["GET"])
 @login_required_marketplace
 def get_my_listings():
@@ -163,10 +164,12 @@ def get_my_listings():
         listings_data = []
         for listing in listings:
             fractal = Fractal.query.get(listing.fractal_id)
+            if not fractal or fractal.user_id != listing.seller_id:
+                continue
             listings_data.append({
                 "id": listing.id,
                 "fractal_id": listing.fractal_id,
-                "fractal_name": fractal.name if fractal and fractal.name else f"Фрактал #{listing.fractal_id}",
+                "fractal_name": fractal.name if fractal and fractal.name else f"Fractal #{listing.fractal_id}",
                 "price": listing.price,
                 "created_at": listing.created_at.isoformat() if listing.created_at else None
             })

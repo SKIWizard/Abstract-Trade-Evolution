@@ -650,12 +650,11 @@
     }
 
     async function connectAndAuthenticate() {
-      if (!window.ethereum) {
+    if (!window.ethereum) {
         showToast('Web3 кошелек не обнаружен. Установите MetaMask', true);
         return false;
-      }
-
-      try {
+    }
+    try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length === 0) throw new Error('Нет доступных аккаунтов');
         const account = accounts[0];
@@ -668,8 +667,8 @@
         showToast(`Подпишите сообщение в кошельке...`);
         const message = `Вход на Abstract Trade: ${nonce}`;
         const signature = await window.ethereum.request({
-          method: 'personal_sign',
-          params: [message, currentAccount]
+            method: 'personal_sign',
+            params: [message, currentAccount]
         });
 
         showToast(`Отправка подписи...`);
@@ -680,14 +679,18 @@
         document.cookie = `jwt_token=${token}; path=/; max-age=86400; SameSite=Lax`;
         showToast(`Успешный вход!`, false);
         return true;
-      } catch (error) {
+    } catch (error) {
         console.error(error);
         showToast(`Ошибка: ${error.message || error}`, true);
         currentAccount = null;
+        jwtToken = null;
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('wallet_address');
+        document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         updateUI(null);
         return false;
-      }
     }
+}
 
     function logout() {
       currentAccount = null;

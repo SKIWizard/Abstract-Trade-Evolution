@@ -32,15 +32,40 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        position: relative;
     }
     .nft-preview img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        transition: opacity 0.3s ease;
     }
     .nft-preview .placeholder {
         color: #4a5568;
         font-size: 3rem;
+    }
+    .regenerating-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+    }
+    .regenerating-overlay.active {
+        opacity: 1;
+    }
+    .regenerating-overlay i {
+        font-size: 3rem;
+        color: #0855d1;
+        animation: spin 1s linear infinite;
     }
     .nft-info {
         display: flex;
@@ -72,7 +97,13 @@
         font-size: 0.7rem;
         color: #7e8da3;
     }
-    .sell-btn {
+    .button-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+    }
+    .sell-btn, .regenerate-btn {
         background: #0855d1;
         border: none;
         padding: 6px 12px;
@@ -81,7 +112,14 @@
         font-size: 0.75rem;
         cursor: pointer;
         transition: all 0.2s;
-        width: 100%;
+        flex: 1;
+        text-align: center;
+    }
+    .regenerate-btn {
+        background: #6b21a5;
+    }
+    .regenerate-btn:hover {
+        background: #4c1d8b;
     }
     .sell-btn:hover {
         background: #0642a3;
@@ -96,11 +134,6 @@
         text-align: center;
         width: 100%;
         display: block;
-    }
-    .button-row {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
     }
     .loading-spinner {
         text-align: center;
@@ -283,9 +316,7 @@
         try {
             const response = await fetch('/fractal/my-fractals', {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.status === 401) {
@@ -335,15 +366,17 @@
                 ${fractals.map(fractal => `
                     <div class="nft-item" data-id="${fractal.id}">
                         <div class="nft-preview">
-                            <div class="placeholder">
-                                <i class="fas fa-cube"></i>
+                            <div class="placeholder"><i class="fas fa-cube"></i></div>
+                            <div class="regenerating-overlay" id="overlay-${fractal.id}">
+                                <i class="fas fa-spinner"></i>
                             </div>
                         </div>
                         <div class="nft-info">
                             <input type="text" class="nft-name" data-id="${fractal.id}" value="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}" maxlength="50">
                             <div class="button-row">
                                 ${!fractal.is_listed
-                                    ? `<button class="sell-btn" data-id="${fractal.id}" data-name="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}">📈 Продать</button>`
+                                    ? `<button class="sell-btn" data-id="${fractal.id}" data-name="${escapeHtml(fractal.name || 'Фрактал #' + fractal.id)}">📈 Продать</button>
+                                       <button class="regenerate-btn" data-id="${fractal.id}">🎲 Регенерировать (1000 FRX)</button>`
                                     : `<span class="listed-badge">📌 В продаже</span>`
                                 }
                             </div>
@@ -359,6 +392,7 @@
             item.addEventListener('click', (e) => {
                 if (e.target.classList.contains('nft-name')) return;
                 if (e.target.classList.contains('sell-btn')) return;
+                if (e.target.classList.contains('regenerate-btn')) return;
                 showFractalDetail(fractalId);
             });
         });
@@ -370,9 +404,7 @@
                 await saveFractalNameDirect(fractalId, newName);
             });
             input.addEventListener('keypress', async (e) => {
-                if (e.key === 'Enter') {
-                    e.target.blur();
-                }
+                if (e.key === 'Enter') e.target.blur();
             });
         });
 
@@ -381,17 +413,61 @@
                 e.stopPropagation();
                 const fractalId = btn.dataset.id;
                 const fractalName = btn.dataset.name;
-
                 const price = prompt(`Введите цену для "${fractalName}" в FRX:`, "10");
                 if (price === null) return;
-
                 const priceNum = parseFloat(price);
                 if (isNaN(priceNum) || priceNum <= 0) {
                     showToast('Введите корректную цену', true);
                     return;
                 }
-
                 await sellFractal(fractalId, priceNum);
+            });
+        });
+
+        document.querySelectorAll('.regenerate-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fractalId = btn.dataset.id;
+                if (!confirm(`Регенерация фрактала стоит 1000 FRX. Продолжить?`)) return;
+                const token = getToken();
+                if (!token) {
+                    showToast('Необходимо авторизоваться', true);
+                    return;
+                }
+                const overlay = document.getElementById(`overlay-${fractalId}`);
+                if (overlay) overlay.classList.add('active');
+                try {
+                    const response = await fetch(`/fractal/regenerate/${fractalId}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        const previewDiv = document.querySelector(`.nft-item[data-id="${fractalId}"] .nft-preview`);
+                        if (previewDiv) {
+                            const img = previewDiv.querySelector('img');
+                            if (img) {
+                                img.style.opacity = '0';
+                                setTimeout(() => {
+                                    img.src = data.image;
+                                    img.onload = () => { img.style.opacity = '1'; };
+                                }, 200);
+                            } else {
+                                previewDiv.innerHTML = `<img src="${data.image}" alt="Фрактал" style="opacity:1"><div class="regenerating-overlay" id="overlay-${fractalId}"><i class="fas fa-spinner"></i></div>`;
+                            }
+                        }
+                        showToast('Фрактал изменён! Снято 1000 FRX.', false);
+                        const balanceSpan = document.querySelector('#walletBtnContainer .balance-value');
+                        if (balanceSpan && data.new_balance) balanceSpan.textContent = data.new_balance.toFixed(2);
+                    } else {
+                        showToast(data.error || 'Ошибка регенерации', true);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('Ошибка соединения', true);
+                } finally {
+                    if (overlay) overlay.classList.remove('active');
+                }
             });
         });
 
@@ -399,14 +475,13 @@
             try {
                 const token = getToken();
                 const response = await fetch(`/fractal/fractal/${fractal.id}`, {
-                    method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
                 if (data.success) {
                     const previewDiv = document.querySelector(`.nft-item[data-id="${fractal.id}"] .nft-preview`);
                     if (previewDiv) {
-                        previewDiv.innerHTML = `<img src="${data.image}" alt="Фрактал">`;
+                        previewDiv.innerHTML = `<img src="${data.image}" alt="Фрактал" style="opacity:1"><div class="regenerating-overlay" id="overlay-${fractal.id}"><i class="fas fa-spinner"></i></div>`;
                     }
                 }
             } catch (error) {
@@ -428,18 +503,13 @@
     async function sellFractal(fractalId, price) {
         const token = getToken();
         if (!token) return;
-
         try {
             const response = await fetch('/marketplace/list', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ fractal_id: fractalId, price: price })
             });
             const data = await response.json();
-
             if (data.success) {
                 showToast('Фрактал выставлен на продажу!', false);
                 loadMyFractals();
@@ -447,7 +517,7 @@
                 showToast(data.error || 'Ошибка при выставлении', true);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error(error);
             showToast('Ошибка соединения', true);
         }
     }
@@ -455,67 +525,48 @@
     async function saveFractalNameDirect(fractalId, name) {
         const token = getToken();
         if (!token) return;
-
         try {
-            const response = await fetch(`/fractal/fractal/${fractalId}/name`, {
+            await fetch(`/fractal/fractal/${fractalId}/name`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ name: name })
             });
-            const data = await response.json();
-            if (!data.success) {
-                console.error('Error saving name:', data.error);
-            }
         } catch (error) {
-            console.error('Error:', error);
+            console.error(error);
         }
     }
 
     async function saveFractalName() {
         const name = document.getElementById('modalNameInput').value;
         if (!currentFractalId) return;
-
         const token = getToken();
         if (!token) return;
-
         try {
             const response = await fetch(`/fractal/fractal/${currentFractalId}/name`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ name: name })
             });
             const data = await response.json();
             if (data.success) {
                 const nameInput = document.querySelector(`.nft-name[data-id="${currentFractalId}"]`);
-                if (nameInput) {
-                    nameInput.value = name;
-                }
+                if (nameInput) nameInput.value = name;
                 showToast('Название сохранено', false);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error(error);
         }
     }
 
     async function showFractalDetail(fractalId) {
         const token = getToken();
         if (!token) return;
-
         currentFractalId = fractalId;
-
         try {
             const response = await fetch(`/fractal/fractal/${fractalId}`, {
-                method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-
             if (data.success) {
                 document.getElementById('modalImage').src = data.image;
                 document.getElementById('modalId').textContent = fractalId;
@@ -524,7 +575,7 @@
                 document.getElementById('fractalModal').classList.add('active');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error(error);
         }
     }
 
